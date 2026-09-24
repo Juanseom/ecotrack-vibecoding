@@ -9,7 +9,7 @@ import {
 } from "@/lib/ai/prompts";
 import { calculate } from "@/lib/emissions/calculate";
 import { getInterpreter } from "@/lib/interpreters";
-import { ClaudeInterpreter, compactContext, type ClaudeClient } from "@/lib/interpreters/claude";
+import { ClaudeInterpreter, compactContext, translateError, type ClaudeClient } from "@/lib/interpreters/claude";
 import { demoInterpreter, extractByRules } from "@/lib/interpreters/demo";
 import { InterpreterError, type ExplainContext } from "@/lib/interpreters/types";
 import { runPipeline } from "@/lib/pipeline";
@@ -353,5 +353,90 @@ describe("getInterpreter", () => {
     expect(getInterpreter()).toBe(demoInterpreter);
     vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-prueba");
     expect(getInterpreter()).toBeInstanceOf(ClaudeInterpreter);
+  });
+});
+
+// ───────────────────────── Regresión UI-2 · iteración 6 ─────────────────────────
+
+describe("regresión UI-2 · errores de configuración vs. transitorios", () => {
+  it("translateError: 401/403/404 y otros 4xx no se reintentan; 408/429/5xx/timeout/conexión sí", () => {
+    const cases: [Error, boolean][] = [
+      [new Anthropic.AuthenticationError(401, {}, "bad key", headers()), false],
+      [new Anthropic.PermissionDeniedError(403, {}, "forbidden", headers()), false],
+      [new Anthropic.NotFoundError(404, {}, "model not found", headers()), false],
+      [new Anthropic.BadRequestError(400, {}, "invalid param", headers()), false],
+      [new Anthropic.RateLimitError(429, {}, "rate", headers()), true],
+      [new Anthropic.InternalServerError(500, {}, "boom", headers()), true],
+      [new Anthropic.InternalServerError(529, {}, "overloaded", headers()), true],
+      [new Anthropic.APIError(408, {}, "timeout", headers()), true],
+      [new Anthropic.APIConnectionTimeoutError(), true],
+      [new Anthropic.APIConnectionError({ message: "fetch failed" }), true],
+      [new Anthropic.AnthropicError("Failed to parse structured output"), true],
+      [new Error("otra cosa"), true],
+    ];
+    for (const [error, retryable] of cases) {
+      expect({ error: error.constructor.name, retryable: translateError(error).retryable }).toEqual({
+        error: error.constructor.name,
+        retryable,
+      });
+    }
+  });
+
+  it("clave inválida → el evento ai_error lleva retryable: false sin filtrar el 401 ni la clave", async () => {
+    const { claude } = interpreter(
+      new Anthropic.AuthenticationError(401, { type: "error" }, "invalid x-api-key sk-ant-SECRETO", headers()),
+    );
+    const events: StreamEvent[] = [];
+    for await (const event of runPipeline("Gastamos 200 kWh de luz", claude)) events.push(event);
+    const last = events.at(-1);
+    expect(last).toMatchObject({ type: "error", code: "ai_error", retryable: false });
+    expect(JSON.stringify(events)).not.toMatch(/401|authentication_error|SECRETO/);
+  });
+
+  it("límite de uso (429) → retryable: true", async () => {
+    const { claude } = interpreter(new Anthropic.RateLimitError(429, {}, "rate", headers()));
+    const events: StreamEvent[] = [];
+    for await (const event of runPipeline("Gastamos 200 kWh de luz", claude)) events.push(event);
+    expect(events.at(-1)).toMatchObject({ type: "error", code: "ai_error", retryable: true });
+  });
+});
+
+// ───────────────────────── Regresión F1 · iteración 6 ─────────────────────────
+
+describe("regresión F1 · negativos en el intérprete de IA", () => {
+  it("el prompt de extracción pide conservar el signo negativo en lugar de corregirlo", () => {
+    expect(EXTRACTION_SYSTEM_PROMPT).toMatch(/signo negativo/);
+    expect(EXTRACTION_SYSTEM_PROMPT).toMatch(/quantity = -50/);
+  });
+
+  it("si Claude devuelve quantity -50, el recibo no lo calcula y la validación avisa", async () => {
+    const text = "Consumimos -50 kWh de electricidad.";
+    const negative: Extraction = {
+      items: [
+        {
+          activity: "electricity_grid",
+          label: "Electricidad",
+          quantity: -50,
+          unit: "kWh",
+          vehicle_count: null,
+          per_vehicle: null,
+          source_quote: "-50 kWh de electricidad",
+          notes: null,
+        },
+      ],
+      ignored: [],
+    };
+    const { claude } = interpreter(
+      ok(negative),
+      ok({ issues: [], clarifying_question: null, discard: [] }),
+      ok({ headline: "Nada que sumar.", summary: "Revisa la cifra negativa." }),
+    );
+    const events: StreamEvent[] = [];
+    for await (const event of runPipeline(text, claude)) events.push(event);
+    const last = events.at(-1);
+    if (last?.type !== "result") throw new Error(`se esperaba result, llegó ${last?.type}`);
+    expect(last.data.lines).toEqual([]);
+    expect(last.data.unquantified[0].reason).toMatch(/negativ/);
+    expect(last.data.validation.issues).toContainEqual(expect.objectContaining({ severity: "warning" }));
   });
 });

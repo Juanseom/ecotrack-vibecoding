@@ -1,4 +1,5 @@
-import { DataBadge, DATA_ORIGIN_DESCRIPTION, DATA_ORIGINS } from "@/components/DataBadge";
+import { DataBadge, DATA_ORIGINS } from "@/components/DataBadge";
+import { dataOriginCopy } from "@/lib/data-origin";
 import { LeafMark } from "@/components/LeafMark";
 import { formatAmount, formatDateTime, formatKg, receiptNumber } from "@/lib/format";
 import type { AnalysisResult, ReceiptLine } from "@/lib/types";
@@ -66,8 +67,8 @@ export function CarbonReceipt({ result }: CarbonReceiptProps) {
           <ul className="mt-2 flex flex-col gap-1.5">
             {DATA_ORIGINS.map((origin) => (
               <li key={origin} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <DataBadge origin={origin} />
-                <span className="font-sans text-ink-soft">{DATA_ORIGIN_DESCRIPTION[origin]}</span>
+                <DataBadge origin={origin} mode={result.mode} />
+                <span className="font-sans text-ink-soft">{dataOriginCopy(origin, result.mode).description}</span>
               </li>
             ))}
           </ul>
@@ -80,7 +81,7 @@ export function CarbonReceipt({ result }: CarbonReceiptProps) {
           {result.lines.map((line, index) => (
             <li key={line.id} className="flex flex-col">
               {index > 0 && <Rule />}
-              <ReceiptLineItem line={line} index={index} />
+              <ReceiptLineItem line={line} index={index} mode={result.mode} />
             </li>
           ))}
         </ol>
@@ -96,7 +97,7 @@ export function CarbonReceipt({ result }: CarbonReceiptProps) {
                 No cuantificado
               </h3>
               <p className="font-sans text-xs text-ink-soft">
-                Lo mencionaste, pero faltan datos para calcularlo sin inventar.
+                Lo mencionaste, pero no podemos calcularlo sin inventar ni cambiar tus datos.
               </p>
               <ul className="flex flex-col gap-2">
                 {result.unquantified.map((item) => (
@@ -106,7 +107,7 @@ export function CarbonReceipt({ result }: CarbonReceiptProps) {
                       <span className="shrink-0 text-ink-soft">— kg</span>
                     </p>
                     <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                      <DataBadge origin="user" />
+                      <DataBadge origin="user" mode={result.mode} />
                       <q className="font-sans italic">{item.quote}</q>
                     </p>
                     <p className="font-sans text-xs text-ink-soft">{item.reason}</p>
@@ -157,7 +158,15 @@ export function CarbonReceipt({ result }: CarbonReceiptProps) {
   );
 }
 
-function ReceiptLineItem({ line, index }: { line: ReceiptLine; index: number }) {
+function ReceiptLineItem({
+  line,
+  index,
+  mode,
+}: {
+  line: ReceiptLine;
+  index: number;
+  mode: AnalysisResult["mode"];
+}) {
   return (
     <div className="flex flex-col gap-2 py-1">
       <p className="flex items-baseline justify-between gap-3">
@@ -169,12 +178,12 @@ function ReceiptLineItem({ line, index }: { line: ReceiptLine; index: number }) 
       </p>
 
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <DataBadge origin="user" />
+        <DataBadge origin="user" mode={mode} />
         <q className="font-sans italic">{line.quote}</q>
       </p>
 
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <DataBadge origin="ai" />
+        <DataBadge origin="ai" mode={mode} />
         <span>{line.interpreted}</span>
       </p>
 
@@ -191,13 +200,13 @@ function ReceiptLineItem({ line, index }: { line: ReceiptLine; index: number }) 
 
       {line.assumptions.map((assumption) => (
         <p key={assumption} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <DataBadge origin="assumption" />
+          <DataBadge origin="assumption" mode={mode} />
           <span className="font-sans text-xs">{assumption}</span>
         </p>
       ))}
 
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <DataBadge origin="factor" />
+        <DataBadge origin="factor" mode={mode} />
         <span className="font-sans text-xs text-ink-soft">
           {line.factor.label} · {line.factor.source}
         </span>

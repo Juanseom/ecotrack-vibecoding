@@ -38,8 +38,12 @@ export interface Interpreter {
  * (el detalle técnico viaja en `cause` y sólo se registra en el servidor).
  */
 export class InterpreterError extends Error {
-  constructor(message: string, options?: { cause?: unknown }) {
+  /** `false` si reintentar no sirve (configuración del servidor); `true` si puede ser pasajero. */
+  readonly retryable: boolean;
+
+  constructor(message: string, options?: { cause?: unknown; retryable?: boolean }) {
     super(message, options);
     this.name = "InterpreterError";
+    this.retryable = options?.retryable ?? true;
   }
 }

@@ -53,6 +53,22 @@ export interface AnalysisResult {
 }
 
 export type StreamEvent =
-  | { type: "stage"; stage: StageId; status: StageStatus; detail?: string }
+  | {
+      type: "stage";
+      stage: StageId;
+      status: StageStatus;
+      detail?: string;
+      /** Quién interpreta el texto. Viaja en el primer evento del stream (opcional). */
+      mode?: AnalysisResult["mode"];
+    }
   | { type: "result"; data: AnalysisResult }
-  | { type: "error"; code: "empty_input" | "no_data" | "ai_error" | "bad_request" | "network" | "internal"; message: string };
+  | {
+      type: "error";
+      code: "empty_input" | "no_data" | "ai_error" | "bad_request" | "network" | "internal";
+      message: string;
+      /**
+       * Sólo `ai_error`: `false` si reintentar no sirve (clave, permisos o modelo mal
+       * configurados); `true` o ausente si el fallo puede ser pasajero.
+       */
+      retryable?: boolean;
+    };

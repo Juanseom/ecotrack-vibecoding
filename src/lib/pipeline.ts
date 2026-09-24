@@ -19,7 +19,14 @@ export async function* runPipeline(
 
   try {
     // 1 · Interpretar
-    yield { type: "stage", stage: "extract", status: "running", detail: "Leyendo tu texto y separando cada consumo…" };
+    // El primer evento dice quién interpreta (IA o reglas) para que la UI no lo atribuya mal.
+    yield {
+      type: "stage",
+      stage: "extract",
+      status: "running",
+      detail: "Leyendo tu texto y separando cada consumo…",
+      mode: interpreter.mode,
+    };
     const extraction = await fromInterpreter(interpreter, async () =>
       checkExtraction(await interpreter.extract(input)),
     );
@@ -112,7 +119,7 @@ export async function* runPipeline(
     console.error(`[pipeline] Falló la etapa "${current}":`, error);
     yield { type: "stage", stage: current, status: "error" };
     yield error instanceof InterpreterError
-      ? { type: "error", code: "ai_error", message: error.message || AI_ERROR_MESSAGE }
+      ? { type: "error", code: "ai_error", message: error.message || AI_ERROR_MESSAGE, retryable: error.retryable }
       : {
           type: "error",
           code: "internal",

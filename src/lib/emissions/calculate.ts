@@ -142,7 +142,11 @@ function checkQuantity(item: ExtractedItem, definition: ActivityDefinition): str
       ? "Faltan horas o km recorridos; no inventamos la distancia."
       : `Falta la cantidad (en ${expected}); no la inventamos.`;
   }
-  if (item.quantity <= 0) return "La cantidad debe ser mayor que cero para poder calcular.";
+  if (item.quantity < 0) {
+    // Nunca se calcula ni se "corrige" un negativo (p. ej. con su valor absoluto): se deja fuera.
+    return `Escribiste ${formatAmount(item.quantity)}${item.unit ? ` ${unitLabel(item.unit)}` : ""}: un consumo no puede ser negativo, así que no lo calculamos. Revisa la cifra.`;
+  }
+  if (item.quantity === 0) return "La cantidad debe ser mayor que cero para poder calcular.";
   if (item.unit === null) return `Falta la unidad: ¿son ${expected}?`;
   return null;
 }
@@ -216,10 +220,13 @@ function vehicleActivity(item: ExtractedItem, definition: ActivityDefinition): C
     };
   }
 
-  const count =
-    item.vehicle_count !== null && Number.isFinite(item.vehicle_count) && item.vehicle_count > 0
-      ? item.vehicle_count
-      : null;
+  // Un número de vehículos imposible (negativo, cero o no finito) no se reemplaza por 1: se deja fuera.
+  if (item.vehicle_count !== null && !(Number.isFinite(item.vehicle_count) && item.vehicle_count > 0)) {
+    return {
+      reason: `El número de vehículos (${formatAmount(item.vehicle_count)}) tiene que ser mayor que cero para poder calcular. Revisa la cifra.`,
+    };
+  }
+  const count = item.vehicle_count;
   const several = count !== null && count > 1;
   // Por vehículo si lo dijo, o si no lo aclaró y hay más de un vehículo (supuesto declarado).
   const perVehicle = several && item.per_vehicle !== false;

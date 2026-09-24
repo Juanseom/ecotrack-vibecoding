@@ -48,10 +48,29 @@ describe("POST /api/analyze", () => {
     expect(await response.json()).toMatchObject({ type: "error", code: "empty_input" });
   });
 
-  it("sin campo text → 400 empty_input", async () => {
+  // Iteración 6 · F2: esta prueba esperaba `empty_input` para `{}` y fijaba el error.
+  // Una petición sin `text` (o con un `text` que no es string) es una petición mal formada.
+  it("sin campo text → 400 bad_request", async () => {
     const response = await post({});
     expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({ type: "error", code: "empty_input" });
+    expect(await response.json()).toMatchObject({ type: "error", code: "bad_request" });
+  });
+
+  it.each([[{ text: 5 }], [{ text: null }], [{ text: ["hola"] }], [null]])(
+    "regresión F2: %j → 400 bad_request (no empty_input)",
+    async (body) => {
+      const response = await post(body);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ type: "error", code: "bad_request" });
+    },
+  );
+
+  it("regresión F2: sólo un string vacío o de espacios es empty_input", async () => {
+    for (const text of ["", " \n\t "]) {
+      const response = await post({ text });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ type: "error", code: "empty_input" });
+    }
   });
 
   it("texto demasiado largo → 400 bad_request", async () => {

@@ -115,3 +115,21 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 | Problemas (reales) | **F1** `"Consumimos -50 kWh"` → calcula **+50 kWh = 22,5 kg** sin ningún aviso (el signo se pierde). **F2** cuerpo `{}` → `empty_input` en vez de `bad_request`. **UI-1** con `no_data` el pipeline dice *"Listo. Aquí tienes tu recibo."* encima del error. **UI-2** error de clave inválida dice *"Suele ser algo pasajero"* (reintentar nunca funcionará). **UI-3** sin conexión se ofrece "Probar en modo demo" (que también necesita red) y la etapa 1 queda pendiente. **UI-4** "¿Cuánto electricidad…" (género). **UI-5** issue extraño en la prueba de inyección. Más el defecto de honestidad detectado en la iteración 3 ("IA interpretó" en modo demo). Nota: el clasificador de permisos bloqueó `next start` escuchando en todas las interfaces; el sub-agente usó `-H 127.0.0.1`. |
 | Decisiones | F1 es el más grave: altera silenciosamente un dato del usuario. Se trata como incidente principal de debugging en la iteración 6. |
 | Evidencia | `docs/evidence/test-matrix-results.md`, `05-t01-desktop.png`, `05-t01-mobile.png`, `05-t07-sin-datos.png`, `05-t09-error-ia.png`, `05-t10-sin-conexion.png`, `05-vacio-mobile.png`. |
+
+---
+
+## Entrada 6 — Debugging con IA
+
+| Campo | Detalle |
+|---|---|
+| Fecha | 2026-09-24 12:40 |
+| Etapa | Iteración 6 · Corrección de errores |
+| Objetivo | Resolver con IA, sin código manual, los fallos reales de la iteración 5 y el defecto de honestidad detectado en la 3. |
+| Prompt utilizado | [`docs/prompts/iter-06-debugging.md`](prompts/iter-06-debugging.md): **fase 1** diagnóstico escrito antes de tocar `src/` (reproducción + causa raíz archivo:línea + riesgo); **fase 2** corrección con prueba de regresión que falle antes y pase después. |
+| Acción realizada | Diagnóstico de la IA en `docs/evidence/debug-diagnostico-iter06.md`. Correcciones en parser demo, motor, ruta, prompt de extracción (v1.1), reductor de estado del pipeline, presentación de errores y etiquetas de origen del dato. |
+| Resultado | **180 tests** (26 regresiones nuevas que fallaban antes del arreglo); **matriz 19/19**; build/lint en verde (re-verificado por el agente principal). |
+| Problemas | La IA encontró un **segundo defecto oculto**: `vehicle_count` ≤ 0 se calculaba como 1 vehículo en silencio. Un test existente codificaba el error F2 (la IA cambió la expectativa con comentario, sin borrarlo). |
+| Solución | Ver `docs/debugging.md`, incidentes #2 (principal), #3 y #4. |
+| Decisiones | Guion pegado a un número = negativo (lado seguro: no se calcula y se pregunta). `retryable` y `mode` como campos **opcionales** del stream para no romper el contrato. |
+| Pendiente detectado al revisar capturas | Con total 0 la página muestra "¿De dónde viene?" vacío y "≈ 0 km / 0,0 árboles"; `HowItWorks` aún dice "La IA entiende tu texto". → Iteración 7. |
+| Evidencia | `06-f1-negativo.png`, `06-ui1-sin-datos.png`, `06-ui2-clave-invalida.png`, `06-ui3-sin-conexion.png`, `06-h1-recibo-demo.png`, `docs/evidence/test-matrix-results.md` (19/19). |

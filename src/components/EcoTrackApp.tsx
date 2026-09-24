@@ -10,17 +10,19 @@ import { ErrorState, type AnalysisError } from "@/components/ErrorState";
 import { History } from "@/components/History";
 import { HowItWorks } from "@/components/HowItWorks";
 import { ModeBadge } from "@/components/ModeBadge";
-import {
-  initialPipeline,
-  PipelineProgress,
-  type PipelineState,
-} from "@/components/PipelineProgress";
+import { PipelineProgress } from "@/components/PipelineProgress";
 import { Recommendations } from "@/components/Recommendations";
 import { ValidationNotice } from "@/components/ValidationNotice";
 import { saveToHistory } from "@/lib/client/history";
+import {
+  pipelineForResult,
+  pipelineReducer,
+  startPipeline,
+  type PipelineState,
+} from "@/lib/client/pipeline-state";
 import { MAX_INPUT_LENGTH, runAnalysis } from "@/lib/client/run-analysis";
 import { formatDateTime } from "@/lib/format";
-import type { AnalysisResult, StageId, StreamEvent } from "@/lib/types";
+import type { AnalysisResult, StreamEvent } from "@/lib/types";
 
 type Phase = "idle" | "processing" | "result" | "error";
 
@@ -28,7 +30,7 @@ type Phase = "idle" | "processing" | "result" | "error";
 export function EcoTrackApp() {
   const [text, setText] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
-  const [stages, setStages] = useState<PipelineState>(() => initialPipeline());
+  const [pipeline, setPipeline] = useState<PipelineState>(() => startPipeline());
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<AnalysisError | null>(null);
   const [lastSubmitted, setLastSubmitted] = useState("");
@@ -62,13 +64,9 @@ export function EcoTrackApp() {
   }, [phase, result]);
 
   function handleEvent(event: StreamEvent) {
+    // El indicador del pipeline (etapas, desenlace y modo) se deriva de todos los eventos.
+    setPipeline((prev) => pipelineReducer(prev, event));
     switch (event.type) {
-      case "stage":
-        setStages((prev) => ({
-          ...prev,
-          [event.stage]: { status: event.status, detail: event.detail },
-        }));
-        break;
       case "result":
         setResult(event.data);
         setPhase("result");
@@ -77,7 +75,6 @@ export function EcoTrackApp() {
       case "error":
         setError(event);
         setPhase("error");
-        setStages(markRunningAsError);
         break;
     }
   }
@@ -89,7 +86,7 @@ export function EcoTrackApp() {
 
     setLastSubmitted(input);
     setError(null);
-    setStages(initialPipeline());
+    setPipeline(startPipeline());
     setPhase("processing");
 
     await runAnalysis(
@@ -104,7 +101,7 @@ export function EcoTrackApp() {
   function openFromHistory(item: AnalysisResult) {
     abortRef.current?.abort();
     setError(null);
-    setStages(initialPipeline("done"));
+    setPipeline(pipelineForResult(item));
     setResult(item);
     setPhase("result");
   }
@@ -138,7 +135,7 @@ export function EcoTrackApp() {
 
       {phase !== "idle" && (
         <div ref={progressRef} className="scroll-mb-6">
-          <PipelineProgress stages={stages} />
+          <PipelineProgress pipeline={pipeline} />
         </div>
       )}
 
@@ -191,12 +188,4 @@ export function EcoTrackApp() {
       </div>
     </div>
   );
-}
-
-function markRunningAsError(prev: PipelineState): PipelineState {
-  const next = { ...prev };
-  for (const id of Object.keys(next) as StageId[]) {
-    if (next[id].status === "running") next[id] = { status: "error" };
-  }
-  return next;
 }

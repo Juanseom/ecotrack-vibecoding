@@ -27,7 +27,9 @@ export async function POST(request: Request): Promise<Response> {
   const parsed = AnalyzeRequestSchema.safeParse(body);
   if (!parsed.success) {
     const text = (body as { text?: unknown } | null)?.text;
-    const empty = typeof text !== "string" || text.trim().length === 0;
+    // Sólo es "vacío" un texto que el usuario dejó en blanco. Si `text` falta o no es un
+    // string, la petición está mal formada (bad_request), no vacía.
+    const empty = typeof text === "string" && text.trim().length === 0;
     return errorResponse(
       empty
         ? {

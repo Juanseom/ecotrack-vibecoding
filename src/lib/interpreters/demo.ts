@@ -57,8 +57,16 @@ const UNIT_FORMS: [Unit, string][] = [
   ["h", "horas?|hrs?|h"],
 ];
 
+/**
+ * Signo menos pegado al número ("-50", "−50"). Como el signo va después de `START`, un guion
+ * precedido de letra o dígito ("8-10 horas") no cuenta como signo, y uno separado por un
+ * espacio ("luz - 50 kWh") es puntuación. Sin este grupo, el `-` quedaba fuera del match
+ * y "-50 kWh" se leía como 50 kWh (iteración 6, F1).
+ */
+const SIGN = "([-−])?";
+
 const QUANTITY_RE = new RegExp(
-  `${START}(${NUMBER})\\s*(${UNIT_FORMS.map(([, forms]) => forms).join("|")})\\.?${END}`,
+  `${START}${SIGN}(${NUMBER})\\s*(${UNIT_FORMS.map(([, forms]) => forms).join("|")})\\.?${END}`,
   "giu",
 );
 const UNIT_TESTS = UNIT_FORMS.map(([unit, forms]) => [unit, new RegExp(`^(?:${forms})$`, "iu")] as const);
@@ -74,6 +82,13 @@ export function parseNumber(raw: string): number | null {
   }
   const value = Number(normalized);
   return Number.isFinite(value) ? value : null;
+}
+
+/** Número con su signo, si lo trae: nunca se descarta un "-" que escribió el usuario. */
+function signedNumber(sign: string | undefined, raw: string): number | null {
+  const value = parseNumber(raw);
+  if (value === null) return null;
+  return sign ? -value : value;
 }
 
 function unitFromToken(token: string): Unit | null {
@@ -130,6 +145,16 @@ const PER_VEHICLE_RE = new RegExp(
   "iu",
 );
 const IN_TOTAL_RE = new RegExp(`${START}(?:en\\s+total|entre\\s+tod[oa]s|en\\s+conjunto|sumad[oa]s)${END}`, "iu");
+
+/**
+ * Palabras que indican que la frase habla de un consumo ("usamos", "gastamos", "el consumo"…).
+ * Un número sin unidad sólo merece aviso si está junto a una de ellas (iteración 6, UI-5):
+ * "usamos 100 de eso" sí; "mi huella es 0" o "somos 3 empleados" no.
+ */
+const CONSUMPTION_WORD_RE = new RegExp(
+  `${START}(?:consum${L}*|gast${L}*|us(?:amos|aron|an|a|ó|é|o|ar|ado|ada)|utiliz${L}*|recorr${L}*|carg(?:amos|aron|ó|é|ar)|tanque${L}*|echamos|echaron|bot(?:amos|aron|ó|é|ar)|quem(?:amos|aron|ó|é|ar))${END}`,
+  "iu",
+);
 
 /** Separa el texto en cláusulas: puntuación y conectores ("y", "pero", "además"…). */
 const CLAUSE_SEPARATOR_RE =
@@ -194,8 +219,8 @@ function findKeywords(clause: string): Keyword[] {
 function findQuantities(clause: string): Quantity[] {
   const found: Quantity[] = [];
   for (const match of clause.matchAll(QUANTITY_RE)) {
-    const value = parseNumber(match[1]);
-    const unit = unitFromToken(match[2]);
+    const value = signedNumber(match[1], match[2]);
+    const unit = unitFromToken(match[3]);
     if (value === null || unit === null) continue;
     found.push({ value, unit, start: match.index, end: match.index + match[0].length });
   }
@@ -205,9 +230,9 @@ function findQuantities(clause: string): Quantity[] {
 /** Número justo antes de la palabra del vehículo: "5 camionetas", "Dos motos". */
 function countBefore(clause: string, keyword: Keyword): (Span & { value: number }) | null {
   const before = clause.slice(0, keyword.start);
-  const match = new RegExp(`${START}(${NUMBER})\\s+$`, "iu").exec(before);
+  const match = new RegExp(`${START}${SIGN}(${NUMBER})\\s+$`, "iu").exec(before);
   if (!match) return null;
-  const value = parseNumber(match[1]);
+  const value = signedNumber(match[1], match[2]);
   return value === null ? null : { value, start: match.index, end: keyword.start };
 }
 
@@ -276,7 +301,7 @@ function extractClause(clause: Clause, extraction: Extraction): void {
   const keywords = findKeywords(clause.text);
   const quantities = findQuantities(clause.text);
   if (keywords.length === 0 && quantities.length === 0) {
-    if (/\d/.test(clause.text)) {
+    if (/\d/.test(clause.text) && CONSUMPTION_WORD_RE.test(clause.text)) {
       extraction.ignored.push({
         quote: clause.text,
         reason: "Vimos un número, pero no reconocimos un consumo con unidad.",
@@ -425,6 +450,19 @@ const VEHICLE_NOUN: Partial<
 
 const isVehicle = (activity: Activity) => activity.startsWith("vehicle_");
 
+/**
+ * Pregunta por la cantidad con la concordancia correcta (iteración 6, UI-4): antes era
+ * "¿Cuánto ${label}…", que daba "¿Cuánto electricidad de la red usaron?".
+ */
+const AMOUNT_QUESTION: Partial<Record<Activity, { ask: string; units: string }>> = {
+  electricity_grid: { ask: "¿Cuánta electricidad usaron", units: "kWh" },
+  diesel: { ask: "¿Cuánto diésel usaron", units: "litros o galones" },
+  gasoline: { ask: "¿Cuánta gasolina usaron", units: "litros o galones" },
+  natural_gas: { ask: "¿Cuánto gas natural usaron", units: "m³" },
+  lpg: { ask: "¿Cuánto gas propano (GLP) usaron", units: "kg o litros" },
+  waste_landfill: { ask: "¿Cuánta basura botaron", units: "kg o toneladas" },
+};
+
 export function reviewByRules(_text: string, extraction: Extraction): ReviewResult {
   const issues: ValidationIssue[] = [];
   const questions: string[] = [];
@@ -448,8 +486,16 @@ export function reviewByRules(_text: string, extraction: Extraction): ReviewResu
         `¿Qué es «${item.source_quote}»? ${item.notes ?? "Dinos qué consumo es para poder calcularlo."}`,
       );
     } else if (!isVehicle(item.activity) && item.quantity === null) {
+      const q = AMOUNT_QUESTION[item.activity];
       questions.push(
-        `¿Cuánto ${item.label.toLowerCase()} usaron? Con la cantidad y su unidad (kWh, litros, m³ o kg) lo sumamos al recibo.`,
+        q
+          ? `${q.ask}? Con la cantidad y su unidad (${q.units}) lo sumamos al recibo.`
+          : `¿Qué cantidad de «${item.source_quote}» usaron? Con la cantidad y su unidad lo sumamos al recibo.`,
+      );
+    } else if (item.quantity !== null && item.quantity < 0) {
+      const q = AMOUNT_QUESTION[item.activity];
+      questions.push(
+        `${q ? q.ask : "¿Qué cantidad usaron"} en realidad? Escribiste «${item.source_quote}» y un consumo no puede ser negativo, así que no lo sumamos.`,
       );
     } else if (item.quantity !== null && item.unit === null) {
       questions.push(`¿En qué unidad está «${item.source_quote}»?`);
@@ -529,7 +575,7 @@ export function explainByRules(ctx: ExplainContext): { headline: string; summary
   const pending = ctx.unquantified.length;
   const pendingNote =
     pending > 0
-      ? `Dejamos fuera ${pending === 1 ? "un consumo" : `${pending} consumos`} porque faltan datos: ${ctx.unquantified
+      ? `Dejamos fuera ${pending === 1 ? "un consumo" : `${pending} consumos`} que no pudimos calcular con lo que escribiste: ${ctx.unquantified
           .map((u) => u.label.replace(/\s*\(.*\)$/, "").toLowerCase())
           .join(", ")}.`
       : null;

@@ -256,3 +256,33 @@ describe("calculate · totales, desglose y equivalencias", () => {
     expect(result.equivalences.treeYears).toBeCloseTo(290 / 21);
   });
 });
+
+// Regresión iteración 6 · F1: un negativo (o un número de vehículos imposible) nunca se calcula,
+// venga del intérprete que venga (demo o Claude).
+describe("calculate · regresión F1 (negativos de cualquier intérprete)", () => {
+  it("cantidad negativa → no cuantificado con una razón que cita el valor escrito", () => {
+    const result = calculate([
+      item({ activity: "electricity_grid", label: "Electricidad", quantity: -50, unit: "kWh", source_quote: "-50 kWh" }),
+    ]);
+    expect(result.lines).toEqual([]);
+    expect(result.totalKg).toBe(0);
+    expect(result.unquantified).toEqual([
+      { label: "Electricidad", quote: "-50 kWh", reason: expect.stringMatching(/-50.*negativ/) },
+    ]);
+  });
+
+  it("número de vehículos negativo → no cuantificado (antes se calculaba como 1 vehículo)", () => {
+    const result = calculate([
+      item({ activity: "vehicle_delivery_van", quantity: 40, unit: "km", vehicle_count: -5, per_vehicle: true }),
+    ]);
+    expect(result.lines).toEqual([]);
+    expect(result.unquantified[0].reason).toMatch(/vehículos/);
+    expect(result.unquantified[0].reason).toMatch(/-5/);
+  });
+
+  it("cero vehículos → no cuantificado", () => {
+    const result = calculate([item({ activity: "vehicle_car", quantity: 40, unit: "km", vehicle_count: 0 })]);
+    expect(result.lines).toEqual([]);
+    expect(result.unquantified).toHaveLength(1);
+  });
+});

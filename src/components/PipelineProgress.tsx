@@ -1,23 +1,11 @@
-import type { StageId, StageStatus } from "@/lib/types";
-
-export type StageState = { status: StageStatus; detail?: string };
-export type PipelineState = Record<StageId, StageState>;
-
-export const STAGES: { id: StageId; title: string; subtitle: string }[] = [
-  { id: "extract", title: "Interpretar", subtitle: "La IA lee tu texto" },
-  { id: "validate", title: "Validar", subtitle: "Revisa que todo cuadre" },
-  { id: "calculate", title: "Calcular", subtitle: "Factores × cantidades" },
-  { id: "explain", title: "Explicar", subtitle: "Te lo cuenta en simple" },
-];
-
-export function initialPipeline(status: StageStatus = "pending"): PipelineState {
-  return {
-    extract: { status },
-    validate: { status },
-    calculate: { status },
-    explain: { status },
-  };
-}
+import {
+  pipelineHeadline,
+  STAGE_ORDER,
+  STAGE_TITLES,
+  stageSubtitle,
+  type PipelineState,
+} from "@/lib/client/pipeline-state";
+import type { StageStatus } from "@/lib/types";
 
 const STATUS_TEXT: Record<StageStatus, string> = {
   pending: "pendiente",
@@ -28,14 +16,11 @@ const STATUS_TEXT: Record<StageStatus, string> = {
 };
 
 type PipelineProgressProps = {
-  stages: PipelineState;
+  pipeline: PipelineState;
 };
 
-/** Las 4 etapas del pipeline de IA, visibles mientras se procesa y después. */
-export function PipelineProgress({ stages }: PipelineProgressProps) {
-  const running = STAGES.find((stage) => stages[stage.id].status === "running");
-  const allDone = STAGES.every((stage) => ["done", "skipped"].includes(stages[stage.id].status));
-
+/** Las 4 etapas del pipeline, visibles mientras se procesa y después. */
+export function PipelineProgress({ pipeline }: PipelineProgressProps) {
   return (
     <section aria-labelledby="pipeline-title" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -46,22 +31,18 @@ export function PipelineProgress({ stages }: PipelineProgressProps) {
           Lo que está haciendo Eco
         </h2>
         <p aria-live="polite" className="font-mono text-xs text-ink-soft">
-          {running
-            ? (stages[running.id].detail ?? `${running.title}…`)
-            : allDone
-              ? "Listo. Aquí tienes tu recibo."
-              : ""}
+          {pipelineHeadline(pipeline)}
         </p>
       </div>
 
       <ol
         className="grid gap-0 rounded-sm border border-ink/15 bg-paper/70 sm:grid-cols-4"
       >
-        {STAGES.map((stage, index) => {
-          const { status } = stages[stage.id];
+        {STAGE_ORDER.map((id, index) => {
+          const { status } = pipeline.stages[id];
           return (
             <li
-              key={stage.id}
+              key={id}
               aria-current={status === "running" ? "step" : undefined}
               className={`relative flex items-center gap-3 border-ink/15 px-4 py-3 transition-colors duration-200 not-last:border-b sm:flex-col sm:items-start sm:gap-2 sm:not-last:border-r sm:not-last:border-b-0 ${
                 status === "running" ? "bg-signal-soft" : ""
@@ -74,16 +55,10 @@ export function PipelineProgress({ stages }: PipelineProgressProps) {
                     status === "pending" || status === "skipped" ? "text-ink-soft" : "text-ink"
                   }`}
                 >
-                  {stage.title}
+                  {STAGE_TITLES[id]}
                   <span className="sr-only">: {STATUS_TEXT[status]}</span>
                 </p>
-                <p className="text-xs text-ink-soft">
-                  {status === "skipped"
-                    ? "Omitida"
-                    : status === "error"
-                      ? "No se pudo completar"
-                      : stage.subtitle}
-                </p>
+                <p className="text-xs text-ink-soft">{stageSubtitle(id, pipeline)}</p>
               </div>
             </li>
           );

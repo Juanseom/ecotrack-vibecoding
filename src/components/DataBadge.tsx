@@ -1,50 +1,34 @@
-export type DataOrigin = "user" | "ai" | "assumption" | "factor";
+import { dataOriginCopy, type DataOrigin, type InterpreterMode } from "@/lib/data-origin";
 
-const BADGES: Record<DataOrigin, { label: string; description: string; className: string }> = {
-  user: {
-    label: "Tú lo dijiste",
-    description: "Cita literal de lo que escribiste",
-    className: "border-moss/50 bg-lichen/35 text-ink",
-  },
-  ai: {
-    label: "IA interpretó",
-    description: "Cómo se leyó tu texto como un consumo medible",
-    className: "border-ink/60 bg-signal text-ink",
-  },
-  assumption: {
-    label: "Supuesto",
-    description: "Algo que tuvimos que suponer porque no lo dijiste",
-    className: "border-clay/70 border-dashed bg-clay/10 text-clay-deep",
-  },
-  factor: {
-    label: "Factor referencial",
-    description: "Factor de emisión aproximado de uso común, no medido para tu negocio",
-    className: "border-ink/30 bg-paper-deep text-ink-soft",
-  },
+export { DATA_ORIGINS, type DataOrigin } from "@/lib/data-origin";
+
+const STYLES: Record<DataOrigin, string> = {
+  user: "border-moss/50 bg-lichen/35 text-ink",
+  ai: "border-ink/60 bg-signal text-ink",
+  assumption: "border-clay/70 border-dashed bg-clay/10 text-clay-deep",
+  factor: "border-ink/30 bg-paper-deep text-ink-soft",
 };
+
+/** En modo demo la insignia de "interpretado" no usa el acento de IA. */
+const DEMO_INTERPRETED_STYLE = "border-ink/50 border-dashed bg-paper text-ink";
 
 type DataBadgeProps = {
   origin: DataOrigin;
+  /** Quién interpretó el texto (Claude o el parser por reglas): cambia la insignia "interpretado". */
+  mode: InterpreterMode;
   className?: string;
 };
 
 /** Insignia de origen del dato: distingue lo dicho, lo interpretado, lo supuesto y lo referencial. */
-export function DataBadge({ origin, className = "" }: DataBadgeProps) {
-  const badge = BADGES[origin];
+export function DataBadge({ origin, mode, className = "" }: DataBadgeProps) {
+  const copy = dataOriginCopy(origin, mode);
+  const style = origin === "ai" && mode === "demo" ? DEMO_INTERPRETED_STYLE : STYLES[origin];
   return (
     <span
-      title={badge.description}
-      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-sm border px-1.5 py-px font-mono text-[0.625rem] font-medium uppercase leading-4 tracking-wider ${badge.className} ${className}`}
+      title={copy.description}
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-sm border px-1.5 py-px font-mono text-[0.625rem] font-medium uppercase leading-4 tracking-wider ${style} ${className}`}
     >
-      {badge.label}
+      {copy.label}
     </span>
   );
 }
-
-export const DATA_ORIGINS: DataOrigin[] = ["user", "ai", "assumption", "factor"];
-export const DATA_ORIGIN_DESCRIPTION: Record<DataOrigin, string> = {
-  user: BADGES.user.description,
-  ai: BADGES.ai.description,
-  assumption: BADGES.assumption.description,
-  factor: BADGES.factor.description,
-};

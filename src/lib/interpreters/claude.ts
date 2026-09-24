@@ -176,7 +176,7 @@ export class ClaudeInterpreter implements Interpreter {
     } catch (error) {
       const translated = translateError(error);
       console.error(`${tagLine} falló tras ${elapsed()}: ${translated.kind}`, describe(error));
-      throw new InterpreterError(translated.message, { cause: error });
+      throw new InterpreterError(translated.message, { cause: error, retryable: translated.retryable });
     }
 
     const fail = (kind: string, message: string): never => {
@@ -256,55 +256,73 @@ export function compactContext(ctx: ExplainContext) {
   };
 }
 
-/** Traduce errores del SDK a un tipo (para el registro) y un mensaje humano (para el usuario). */
-export function translateError(error: unknown): { kind: string; message: string } {
+/**
+ * Traduce errores del SDK a un tipo (para el registro), un mensaje humano (para el usuario)
+ * y si reintentar tiene sentido: los transitorios (429, 5xx, timeout, conexión) sí; los de
+ * configuración (401, 403, 404 del modelo, otras peticiones inválidas) no.
+ */
+export function translateError(error: unknown): { kind: string; message: string; retryable: boolean } {
   // Orden: de lo más específico a lo más general (APIConnectionError hereda de APIError).
   if (error instanceof Anthropic.AuthenticationError) {
     return {
       kind: "authentication_error (401)",
       message: "La clave de la IA no es válida o fue revocada. Hay que revisar la configuración del servidor.",
+      retryable: false,
     };
   }
   if (error instanceof Anthropic.PermissionDeniedError) {
     return {
       kind: "permission_error (403)",
       message: "La clave de la IA no tiene permiso para usar este modelo. Hay que revisar la configuración del servidor.",
+      retryable: false,
     };
   }
   if (error instanceof Anthropic.NotFoundError) {
     return {
       kind: "not_found_error (404)",
       message: "El modelo de IA configurado no existe o no está disponible. Hay que revisar ANTHROPIC_MODEL.",
+      retryable: false,
     };
   }
   if (error instanceof Anthropic.RateLimitError) {
     return {
       kind: "rate_limit_error (429)",
       message: "Llegamos al límite de uso de la IA por ahora. Espera un minuto e inténtalo de nuevo.",
+      retryable: true,
     };
   }
   if (error instanceof Anthropic.InternalServerError) {
     return {
       kind: `${error.type ?? "api_error"} (${error.status})`,
       message: "El servicio de IA está saturado o caído en este momento. Inténtalo de nuevo en unos minutos.",
+      retryable: true,
     };
   }
   if (error instanceof Anthropic.APIConnectionTimeoutError) {
     return {
       kind: "timeout",
       message: "La IA tardó demasiado en responder. Inténtalo de nuevo en unos segundos.",
+      retryable: true,
     };
   }
   if (error instanceof Anthropic.APIConnectionError) {
     return {
       kind: "connection_error",
       message: "No pudimos conectar con el servicio de IA. Revisa la conexión a internet del servidor e inténtalo de nuevo.",
+      retryable: true,
     };
   }
   if (error instanceof Anthropic.APIError) {
+    // Otros estados: 408/409 y 5xx son pasajeros; un 4xx es una petición que no va a cambiar
+    // (configuración del modelo o del servidor), así que reintentar no sirve.
+    const status = error.status;
+    const retryable = status === undefined || status === 408 || status === 409 || status >= 500;
     return {
-      kind: `${error.type ?? "api_error"} (${error.status ?? "sin estado"})`,
-      message: "La IA no pudo procesar esta petición. Inténtalo de nuevo.",
+      kind: `${error.type ?? "api_error"} (${status ?? "sin estado"})`,
+      message: retryable
+        ? "La IA no pudo procesar esta petición. Inténtalo de nuevo."
+        : "La IA rechazó la petición por la configuración del servidor. Hay que revisarla.",
+      retryable,
     };
   }
   if (error instanceof Anthropic.AnthropicError) {
@@ -312,9 +330,10 @@ export function translateError(error: unknown): { kind: string; message: string 
     return {
       kind: "structured_output_parse_error",
       message: "La IA respondió en un formato inesperado. Inténtalo de nuevo.",
+      retryable: true,
     };
   }
-  return { kind: "unknown_error", message: "Algo falló al hablar con la IA. Inténtalo de nuevo." };
+  return { kind: "unknown_error", message: "Algo falló al hablar con la IA. Inténtalo de nuevo.", retryable: true };
 }
 
 function describe(error: unknown): string {
