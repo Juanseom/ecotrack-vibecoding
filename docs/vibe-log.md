@@ -82,3 +82,20 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 | Solución | (1) Copia real de `node_modules` (`cp -Rc`); el agente principal re-verificó el build dentro del repo. (2) Deduplicación en el intérprete demo. (3) Pendiente para la iteración 6 (corrección de errores). |
 | Decisiones | `steps` guarda sólo conversiones; la operación `cantidad × factor` la dibuja el recibo. Si `per_vehicle` es desconocido con >1 vehículo, se asume "por vehículo" **y se declara como supuesto**. |
 | Evidencia | `docs/evidence/screenshots/03-flujo-demo-panaderia.png`, `03-flujo-demo-no-cuantificable.png`, `03-flujo-sin-datos.png`. |
+
+---
+
+## Entrada 4 — Integración de IA (Claude)
+
+| Campo | Detalle |
+|---|---|
+| Fecha | 2026-09-24 12:20 |
+| Etapa | Iteración 4 · Integración de IA |
+| Objetivo | Intérprete `ClaudeInterpreter` con 4 llamadas (extracción, validación, análisis, recomendaciones), cada una con prompt de sistema propio y salida estructurada validada con Zod. |
+| Prompt utilizado | [`docs/prompts/iter-04-integracion-ia.md`](prompts/iter-04-integracion-ia.md). Los 4 prompts de producto los diseñó el agente principal (ver `docs/ai-prompts.md`); el sub-agente los copió al código con un script y verificó que fueran idénticos al `.md`. |
+| Acción realizada | `@anthropic-ai/sdk` 0.128.0; `client.messages.parse` + `zodOutputFormat`; `output_config.effort` configurable (`low` por defecto); manejo de `refusal`, `max_tokens`, `parsed_output` nulo y errores tipados (401/403/404/429/5xx/timeout/conexión) con mensajes en español; validación con capacidad de **descartar** ítems no respaldados por el texto; protección básica contra inyección (el texto va en `<texto_usuario>` y se neutraliza la etiqueta de cierre). |
+| Resultado | **125 tests** (23 nuevos con cliente simulado). Build/lint en verde. Prueba real contra la API con una clave inválida a propósito: respuesta 401 en 610 ms → el usuario ve *"La clave de la IA no es válida o fue revocada…"* y puede "Probar en modo demo". |
+| Problemas | (1) El SDK 0.128.0 convierte los `enum` de Zod en descripciones al enviar el esquema, así que la API no los impone; sólo Zod los valida al recibir. (2) `messages.parse` lanza error antes de poder leer `stop_reason` si el JSON viene cortado. (3) Riesgo de superar `maxDuration = 60` con 3 tramos de hasta 30 s. (4) El sub-agente no activó `fallbacks` del servidor porque el prompt pedía `client.messages.parse`. |
+| Solución | (1)(2) Se capturan y se traducen a "La IA respondió en un formato inesperado". (3)(4) Quedan registrados como riesgos a medir con una clave real. |
+| Decisión del estudiante | **No se proporciona API key.** El proyecto continúa y se despliega en modo demo. Por la regla de no inventar evidencia, en toda la documentación la IA real figura como *implementada y probada con dobles de prueba + ruta de error verificada contra la API real*, **sin** análisis exitosos reales. Basta con añadir `ANTHROPIC_API_KEY` en Vercel para activarla. |
+| Evidencia | `src/lib/ai/prompts.ts`, `src/lib/interpreters/claude.ts`, `src/lib/interpreters/claude.test.ts`, commit `accb3ce`. |
