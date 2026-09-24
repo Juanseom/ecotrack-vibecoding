@@ -48,3 +48,20 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 | Solución | (1) La IA subió `@types/node` a `^24` en lugar de forzar con `--legacy-peer-deps` → ver `docs/debugging.md` incidente #1. (2) El agente principal creó `scripts/screenshot.mjs` con Playwright apuntando al Chromium en caché (revisión 1228, el paquete pedía 1243). (3) La IA añadió la excepción `!.env.example`. |
 | Decisiones | Se conservan `AGENTS.md`/`CLAUDE.md` que genera Next 16 (los regenera `next dev` y advierten a las IA que Next 16 tiene cambios incompatibles con su entrenamiento: útil para las siguientes iteraciones). |
 | Evidencia | `docs/evidence/screenshots/01-estructura-desktop.png`, `01-estructura-mobile.png`. |
+
+---
+
+## Entrada 2 — Construcción de la interfaz
+
+| Campo | Detalle |
+|---|---|
+| Fecha | 2026-09-24 11:45 |
+| Etapa | Iteración 2 · Interfaz |
+| Objetivo | Toda la interfaz del flujo principal sobre un contrato de tipos fijo, alimentada por un resultado de ejemplo, para que la API se conecte después sin rehacer la UI. |
+| Prompt utilizado | [`docs/prompts/iter-02-interfaz.md`](prompts/iter-02-interfaz.md). A partir de esta iteración el prompt se entrega al sub-agente **por referencia** ("tu única instrucción es el prompt guardado en … ejecútalo tal cual"): el texto que recibe es exactamente el del archivo versionado. |
+| Acción realizada | El sub-agente creó `src/lib/types.ts` (contrato literal del prompt), el fixture, `runAnalysis()` como punto único de integración (simulado con temporizadores), historial en `localStorage`, formato `es-CO` y 14 componentes: `Composer`, `PipelineProgress`, `CarbonReceipt`, `Breakdown`, `AnalysisCard`, `ValidationNotice`, `Recommendations`, `ModeBadge`, `History`, `ErrorState`, `DataBadge`, `CategoryIcon`, `HowItWorks`, `EcoTrackApp`. |
+| Resultado | Build/lint en verde; **15 tests** en 5 archivos. Recibo de papel con bordes dentados, insignias de origen del dato (`Tú lo dijiste` · `IA interpretó` · `Supuesto` · `Factor referencial`), sello "ESTIMACIÓN", desglose, equivalencias, pregunta de Eco y recomendaciones con impacto cualitativo. El sub-agente verificó a 375 px que no hay scroll horizontal. |
+| Problemas | (1) La primera paleta de categorías no pasó el validador de contraste/daltonismo que usó la IA. (2) Máscara CSS del borde dentado recortaba la sombra. (3) En sus scripts de verificación: `strict mode violation: getByRole('alert') resolved to 2 elements` (Next inyecta un anunciador de rutas con rol `alert`). |
+| Solución | (1) Paleta ajustada (ΔE mínimo para daltonismo 9,2) y el color nunca va solo: la leyenda lleva ícono, nombre, kg y %. (2) Sombra en contenedor aparte con `drop-shadow`. (3) Filtrado por texto. |
+| Decisiones | Recibo de ~440 px a la izquierda como un ticket real; lectura de Eco a la derecha. Limitación temporal aceptada: el fixture siempre cita el texto de ejemplo; se elimina en la iteración 3. |
+| Evidencia | `docs/evidence/screenshots/02-interfaz-vacia.png`, `02-interfaz-resultado-fixture.png`, `02-interfaz-mobile.png`. |

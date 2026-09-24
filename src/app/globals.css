@@ -15,6 +15,36 @@
   --color-lichen: #a7c4a0; /* Acentos suaves, bordes activos */
   --color-signal: #c8f169; /* Acento "vivo" de IA (con moderación) */
   --color-clay: #c8643b; /* Advertencias, impacto alto */
+
+  /* Derivados (iteración 2) */
+  --color-receipt: #fffdf7; /* Papel del recibo: blanco cálido */
+  --color-clay-deep: #9a4524; /* Texto sobre fondos claros cuando el tono es clay (AA) */
+  --color-signal-soft: #eef9d2; /* Fondo tenue de lo que hace la IA */
+
+  /* Movimiento: corto y sutil; desactivado con prefers-reduced-motion */
+  --animate-stage-pulse: stage-pulse 1.4s ease-in-out infinite;
+  --animate-rise: rise 240ms ease-out both;
+
+  @keyframes stage-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgb(200 241 105 / 0.9);
+    }
+    50% {
+      box-shadow: 0 0 0 6px rgb(200 241 105 / 0);
+    }
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 /* Tipografías: las variables las inyecta next/font en <html> (layout.tsx) */
@@ -97,6 +127,57 @@
       rgb(167 196 160 / 0.55) calc(2rem - 1px) 2rem
     );
   background-position: 0 1.5rem;
+}
+
+/*
+ * Recibo de papel: bordes superior e inferior dentados con una máscara CSS.
+ * Los dientes miden --tooth de ancho y la mitad de alto; el padding vertical debe superarlos.
+ * La sombra se pone en un contenedor con drop-shadow (la máscara recorta box-shadow).
+ */
+@utility receipt-paper {
+  --tooth: 14px;
+  background-color: var(--color-receipt);
+  mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg)
+      top / var(--tooth) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+      bottom / var(--tooth) 51% repeat-x;
+}
+
+/* Separador punteado del recibo (más espaciado que border-dotted). */
+@utility receipt-rule {
+  height: 1px;
+  background-image: linear-gradient(
+    to right,
+    rgb(22 36 28 / 0.45) 0 2px,
+    transparent 2px 6px
+  );
+  background-size: 6px 1px;
+}
+
+/* Código de barras decorativo al pie del recibo. */
+@utility barcode {
+  background-image: linear-gradient(
+    to right,
+    var(--color-ink) 0 2px,
+    transparent 2px 4px,
+    var(--color-ink) 4px 5px,
+    transparent 5px 7px,
+    var(--color-ink) 7px 10px,
+    transparent 10px 11px,
+    var(--color-ink) 11px 12px,
+    transparent 12px 15px,
+    var(--color-ink) 15px 16px,
+    transparent 16px 17px,
+    var(--color-ink) 17px 19px,
+    transparent 19px 22px
+  );
+  background-size: 22px 100%;
+}
+
+/* Área de texto con renglones: los renglones se desplazan con el texto. */
+@utility notebook-field {
+  background-attachment: local;
 }
 
 @media (prefers-reduced-motion: reduce) {

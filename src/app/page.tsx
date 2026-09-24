@@ -1,10 +1,11 @@
 import Link from "next/link";
 
+import { EcoTrackApp } from "@/components/EcoTrackApp";
 import { LeafMark } from "@/components/LeafMark";
 
 export default function Home() {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 py-6 sm:px-8 sm:py-10">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-5 py-6 sm:px-8 sm:py-10">
       <header className="flex items-center justify-between gap-4 border-b border-dashed border-ink/20 pb-5">
         <Link
           href="/"
@@ -25,7 +26,7 @@ export default function Home() {
       </header>
 
       <main className="flex flex-1 flex-col gap-10 py-10 sm:gap-12 sm:py-14">
-        <section aria-labelledby="lema" className="flex flex-col gap-5">
+        <section aria-labelledby="lema" className="flex max-w-3xl flex-col gap-5">
           <p className="font-mono text-xs uppercase tracking-widest text-moss">
             Huella de carbono para pequeños negocios
           </p>
@@ -44,23 +45,7 @@ export default function Home() {
           </p>
         </section>
 
-        <section aria-labelledby="hoja" className="flex flex-col gap-3">
-          <h2
-            id="hoja"
-            className="font-mono text-xs uppercase tracking-widest text-ink-soft"
-          >
-            Hoy, en mi negocio…
-          </h2>
-          <div className="notebook-lines relative min-h-56 rounded-sm border border-ink/15 bg-paper-deep/60 py-6 pl-16 pr-5 shadow-[0_1px_0_rgb(22_36_28/0.06),0_12px_30px_-18px_rgb(22_36_28/0.35)] sm:pr-8">
-            <p className="text-lg italic leading-8 text-ink-soft">
-              “Hoy usamos 5 camionetas de reparto durante 8 horas y gastamos
-              200 kWh de luz.”
-            </p>
-            <p className="absolute bottom-4 right-4 rounded-sm border border-dashed border-ink/25 bg-paper/80 px-2 py-1 font-mono text-[0.7rem] uppercase tracking-wider text-ink-soft">
-              Aquí escribirás tu día · próximamente
-            </p>
-          </div>
-        </section>
+        <EcoTrackApp />
       </main>
 
       <footer className="border-t border-dashed border-ink/20 pt-4 font-mono text-[0.7rem] uppercase tracking-widest text-ink-soft">
