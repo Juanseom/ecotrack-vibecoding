@@ -31,3 +31,20 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 | Solución | Se diseña un **modo demo** (parser por reglas, etiquetado como simulado) para que el desarrollo avance sin clave; la clave se pedirá al llegar a la iteración de integración de IA, y la cuenta de Vercel al desplegar. |
 | Decisiones | (1) Claude Code como herramienta de Vibe Coding; (2) Next.js + Tailwind + Claude API + Zod; (3) **la IA interpreta, el código calcula**; (4) resultado presentado como "recibo de carbono" para mostrar la trazabilidad; (5) streaming NDJSON para que el usuario vea las 4 etapas de la IA. |
 | Evidencia | `docs/01-analisis-taller.md`, `docs/master-prompt.md`, `docs/architecture.md`, commit de la iteración 0. |
+
+---
+
+## Entrada 1 — Estructura inicial
+
+| Campo | Detalle |
+|---|---|
+| Fecha | 2026-09-24 11:25 |
+| Etapa | Iteración 1 · Estructura |
+| Objetivo | Proyecto Next.js que compile, con los tokens de diseño, las tres tipografías y una portada con identidad. |
+| Prompt utilizado | [`docs/prompts/iter-01-estructura.md`](prompts/iter-01-estructura.md), entregado literalmente a un sub-agente generador. |
+| Acción realizada | El sub-agente generó el proyecto con `create-next-app` en una carpeta temporal (para no pisar `README.md`/`docs/`), configuró los 8 tokens de color en Tailwind v4 (`@theme`), Fraunces/Geist/Geist Mono con `next/font`, textura de papel y hoja rayada en CSS puro, marca de hoja en SVG, `.env.example`, Vitest y una prueba de humo. |
+| Resultado | Next 16.3.6 · React 19.2.8 · Tailwind 4.3.3 · Vitest 5.0.1. `build`, `lint` y `test` en verde (verificado de nuevo por el agente principal). Portada con lema, hoja de cuaderno y pie "Estimación, no medición". |
+| Problemas | (1) `npm install -D vitest` falló con `ERESOLVE … peerOptional @types/node@"^22.0.0 \|\| >=24.0.0" from vitest@5.0.1` (el generador trae `@types/node@20`). (2) El sub-agente no pudo tomar capturas: no encontró Chrome. (3) La regla `.env*` del `.gitignore` también ignoraba `.env.example`. |
+| Solución | (1) La IA subió `@types/node` a `^24` en lugar de forzar con `--legacy-peer-deps` → ver `docs/debugging.md` incidente #1. (2) El agente principal creó `scripts/screenshot.mjs` con Playwright apuntando al Chromium en caché (revisión 1228, el paquete pedía 1243). (3) La IA añadió la excepción `!.env.example`. |
+| Decisiones | Se conservan `AGENTS.md`/`CLAUDE.md` que genera Next 16 (los regenera `next dev` y advierten a las IA que Next 16 tiene cambios incompatibles con su entrenamiento: útil para las siguientes iteraciones). |
+| Evidencia | `docs/evidence/screenshots/01-estructura-desktop.png`, `01-estructura-mobile.png`. |
