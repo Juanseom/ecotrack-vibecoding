@@ -99,3 +99,19 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 | Solución | (1)(2) Se capturan y se traducen a "La IA respondió en un formato inesperado". (3)(4) Quedan registrados como riesgos a medir con una clave real. |
 | Decisión del estudiante | **No se proporciona API key.** El proyecto continúa y se despliega en modo demo. Por la regla de no inventar evidencia, en toda la documentación la IA real figura como *implementada y probada con dobles de prueba + ruta de error verificada contra la API real*, **sin** análisis exitosos reales. Basta con añadir `ANTHROPIC_API_KEY` en Vercel para activarla. |
 | Evidencia | `src/lib/ai/prompts.ts`, `src/lib/interpreters/claude.ts`, `src/lib/interpreters/claude.test.ts`, commit `accb3ce`. |
+
+---
+
+## Entrada 5 — Pruebas (matriz QA)
+
+| Campo | Detalle |
+|---|---|
+| Fecha | 2026-09-24 12:15 |
+| Etapa | Iteración 5 · Pruebas |
+| Objetivo | Ejecutar una matriz de pruebas con expectativas verificables y **encontrar** fallos (sin arreglarlos). |
+| Prompt utilizado | [`docs/prompts/iter-05-pruebas.md`](prompts/iter-05-pruebas.md) (sub-agente en rol QA, con prohibición de tocar `src/`). |
+| Acción realizada | Arnés `scripts/test-matrix.mjs` (19 casos contra la API, dos servidores: sin clave y con clave inválida) y `scripts/test-ui.mjs` (Playwright: capturas, scroll horizontal, consola, historial, modo sin red). |
+| Resultado | **17/19 casos pasan.** Resultados crudos en `docs/evidence/test-matrix-results.{md,json}`. Sin scroll horizontal a 390 px; 0 errores de consola (salvo el esperado `ERR_INTERNET_DISCONNECTED` sin red); historial persiste; error de IA real (401) sin filtrar la clave. |
+| Problemas (reales) | **F1** `"Consumimos -50 kWh"` → calcula **+50 kWh = 22,5 kg** sin ningún aviso (el signo se pierde). **F2** cuerpo `{}` → `empty_input` en vez de `bad_request`. **UI-1** con `no_data` el pipeline dice *"Listo. Aquí tienes tu recibo."* encima del error. **UI-2** error de clave inválida dice *"Suele ser algo pasajero"* (reintentar nunca funcionará). **UI-3** sin conexión se ofrece "Probar en modo demo" (que también necesita red) y la etapa 1 queda pendiente. **UI-4** "¿Cuánto electricidad…" (género). **UI-5** issue extraño en la prueba de inyección. Más el defecto de honestidad detectado en la iteración 3 ("IA interpretó" en modo demo). Nota: el clasificador de permisos bloqueó `next start` escuchando en todas las interfaces; el sub-agente usó `-H 127.0.0.1`. |
+| Decisiones | F1 es el más grave: altera silenciosamente un dato del usuario. Se trata como incidente principal de debugging en la iteración 6. |
+| Evidencia | `docs/evidence/test-matrix-results.md`, `05-t01-desktop.png`, `05-t01-mobile.png`, `05-t07-sin-datos.png`, `05-t09-error-ia.png`, `05-t10-sin-conexion.png`, `05-vacio-mobile.png`. |
