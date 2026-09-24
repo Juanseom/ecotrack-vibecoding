@@ -486,7 +486,7 @@ export function reviewByRules(_text: string, extraction: Extraction): ReviewResu
     issues.push({ severity: "info", message: `No sumamos «${ignored.quote}»: ${lowerFirst(ignored.reason)}` });
   }
 
-  return { issues, clarifyingQuestion: questions[0] ?? null };
+  return { issues, clarifyingQuestion: questions[0] ?? null, discard: [] };
 }
 
 function lowerFirst(value: string): string {

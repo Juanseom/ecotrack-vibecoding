@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { POST } from "@/app/api/analyze/route";
 import type { StreamEvent } from "@/lib/types";
@@ -20,6 +20,14 @@ async function readNdjson(response: Response): Promise<StreamEvent[]> {
     .filter(Boolean)
     .map((line) => JSON.parse(line) as StreamEvent);
 }
+
+// Sin clave: la ruta debe usar el modo demo y no llamar nunca a la API real.
+beforeAll(() => {
+  vi.stubEnv("ANTHROPIC_API_KEY", "");
+});
+afterAll(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("POST /api/analyze", () => {
   it("responde NDJSON en streaming con las etapas y el resultado", async () => {
@@ -67,5 +75,21 @@ describe("POST /api/analyze", () => {
   it("texto sin datos → evento no_data en el stream", async () => {
     const events = await readNdjson(await post({ text: "hola, ¿cómo estás?" }));
     expect(events.at(-1)).toMatchObject({ type: "error", code: "no_data" });
+  });
+
+  it("exporta la configuración de segmento para Node.js y 60 s", async () => {
+    const route = await import("@/app/api/analyze/route");
+    expect(route.runtime).toBe("nodejs");
+    expect(route.maxDuration).toBe(60);
+  });
+
+  it("sin ANTHROPIC_API_KEY el resultado es de modo demo", async () => {
+    const events = await readNdjson(await post({ text: "Gastamos 200 kWh de luz" }));
+    const last = events.at(-1);
+    expect(last?.type).toBe("result");
+    if (last?.type === "result") {
+      expect(last.data.mode).toBe("demo");
+      expect(last.data.model).toBeUndefined();
+    }
   });
 });

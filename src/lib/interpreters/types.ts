@@ -15,11 +15,13 @@ export interface ExplainContext {
 export interface ReviewResult {
   issues: ValidationIssue[];
   clarifyingQuestion: string | null;
+  /** Índices (desde 0) de items de la extracción no respaldados por el texto: el pipeline los descarta. */
+  discard: number[];
 }
 
 /**
  * Contrato del intérprete: extrae y explica, nunca calcula.
- * Hoy lo implementa el intérprete por reglas (modo demo); en la iteración 4, Claude.
+ * Lo implementan el intérprete por reglas (modo demo) y Claude (`ClaudeInterpreter`).
  */
 export interface Interpreter {
   mode: "ai" | "demo";
@@ -30,7 +32,11 @@ export interface Interpreter {
   recommend(ctx: ExplainContext): Promise<Recommendation[]>;
 }
 
-/** Error que viene del intérprete (p. ej. la API de IA): el pipeline lo reporta como `ai_error`. */
+/**
+ * Error que viene del intérprete (p. ej. la API de IA): el pipeline lo reporta como `ai_error`.
+ * Su `message` se muestra al usuario, así que va en español y sin detalles internos
+ * (el detalle técnico viaja en `cause` y sólo se registra en el servidor).
+ */
 export class InterpreterError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);

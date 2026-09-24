@@ -9,6 +9,8 @@ import type { StreamEvent } from "@/lib/types";
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** Hasta 4 llamadas a Claude (30 s por intento, 1 reintento): damos margen a la plataforma. */
+export const maxDuration = 60;
 
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;

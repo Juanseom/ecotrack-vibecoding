@@ -166,7 +166,7 @@ describe("intérprete demo · revisión", () => {
 
   it("sin nada que preguntar devuelve null", () => {
     const review = reviewByRules(EXAMPLE_TEXTS[1], extractByRules(EXAMPLE_TEXTS[1]));
-    expect(review).toEqual({ issues: [], clarifyingQuestion: null });
+    expect(review).toEqual({ issues: [], clarifyingQuestion: null, discard: [] });
   });
 });
 

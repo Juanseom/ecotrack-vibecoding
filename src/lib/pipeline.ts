@@ -3,7 +3,7 @@ import { formatKg } from "@/lib/format";
 import { InterpreterError, type ExplainContext, type Interpreter } from "@/lib/interpreters";
 import { ExtractionSchema, type Extraction } from "@/lib/schemas";
 import type { AnalysisResult, StageId, StreamEvent, ValidationIssue } from "@/lib/types";
-import { ruleCheck } from "@/lib/validation/rules";
+import { normalizeForMatch, ruleCheck } from "@/lib/validation/rules";
 
 /**
  * Orquesta las 4 etapas y emite un `StreamEvent` por cada avance:
@@ -49,7 +49,14 @@ export async function* runPipeline(
     current = "validate";
     yield { type: "stage", stage: "validate", status: "running", detail: "Revisando que las cantidades y unidades cuadren…" };
     const review = await fromInterpreter(interpreter, () => interpreter.review(input, extraction));
-    const issues = dedupe([...ruleCheck(extraction.items, input), ...review.issues]);
+    // Lo que la validación marcó como no respaldado por el texto sale antes de calcular.
+    const { kept, discarded } = applyDiscard(extraction, review.discard);
+    const discardIssues: ValidationIssue[] = discarded.map((item) => ({
+      severity: "warning",
+      message: `Descarté «${item.label.trim() || item.source_quote}» porque no aparece así en tu texto.`,
+    }));
+    // Las reglas deterministas corren sobre lo que queda (sus lineId coinciden con el recibo).
+    const issues = dedupe([...ruleCheck(kept.items, input), ...discardIssues, ...review.issues]);
     const warnings = issues.filter((issue) => issue.severity === "warning").length;
     yield {
       type: "stage",
@@ -61,7 +68,7 @@ export async function* runPipeline(
     // 3 · Calcular
     current = "calculate";
     yield { type: "stage", stage: "calculate", status: "running", detail: "Multiplicando cada consumo por su factor…" };
-    const calc = calculate(extraction.items);
+    const calc = calculate(kept.items);
     yield { type: "stage", stage: "calculate", status: "done", detail: `≈ ${formatKg(calc.totalKg)} kg CO₂e` };
 
     // 4 · Explicar (análisis y recomendaciones en paralelo)
@@ -105,17 +112,30 @@ export async function* runPipeline(
     console.error(`[pipeline] Falló la etapa "${current}":`, error);
     yield { type: "stage", stage: current, status: "error" };
     yield error instanceof InterpreterError
-      ? {
-          type: "error",
-          code: "ai_error",
-          message: "Eco no pudo interpretar tu texto esta vez. Inténtalo de nuevo en unos segundos.",
-        }
+      ? { type: "error", code: "ai_error", message: error.message || AI_ERROR_MESSAGE }
       : {
           type: "error",
           code: "internal",
           message: "Algo falló de nuestro lado mientras calculábamos. Inténtalo de nuevo.",
         };
   }
+}
+
+const AI_ERROR_MESSAGE = "Eco no pudo interpretar tu texto esta vez. Inténtalo de nuevo en unos segundos.";
+
+/**
+ * Quita de la extracción los ítems cuyos índices vienen en `discard` (índices inválidos o
+ * repetidos se ignoran). Conserva el orden de los que quedan.
+ */
+export function applyDiscard(
+  extraction: Extraction,
+  discard: number[],
+): { kept: Extraction; discarded: Extraction["items"] } {
+  const drop = new Set(discard.filter((i) => Number.isInteger(i) && i >= 0 && i < extraction.items.length));
+  return {
+    kept: { ...extraction, items: extraction.items.filter((_, i) => !drop.has(i)) },
+    discarded: extraction.items.filter((_, i) => drop.has(i)),
+  };
 }
 
 /**
@@ -127,7 +147,7 @@ async function fromInterpreter<T>(interpreter: Interpreter, call: () => Promise<
     return await call();
   } catch (error) {
     if (interpreter.mode === "ai" && !(error instanceof InterpreterError)) {
-      throw new InterpreterError("Falló el intérprete de IA", { cause: error });
+      throw new InterpreterError(AI_ERROR_MESSAGE, { cause: error });
     }
     throw error;
   }
@@ -137,16 +157,20 @@ async function fromInterpreter<T>(interpreter: Interpreter, call: () => Promise<
 function checkExtraction(extraction: Extraction): Extraction {
   const parsed = ExtractionSchema.safeParse(extraction);
   if (!parsed.success) {
-    throw new InterpreterError("La extracción no cumple el esquema", { cause: parsed.error });
+    throw new InterpreterError("La lectura de tu texto llegó con un formato inesperado. Inténtalo de nuevo.", {
+      cause: parsed.error,
+    });
   }
   return parsed.data;
 }
 
+/** Quita duplicados evidentes: el mismo mensaje (sin importar tildes, mayúsculas ni espacios). */
 function dedupe(issues: ValidationIssue[]): ValidationIssue[] {
   const seen = new Set<string>();
   return issues.filter((issue) => {
-    if (seen.has(issue.message)) return false;
-    seen.add(issue.message);
+    const key = normalizeForMatch(issue.message).replace(/[.!¡¿?]+$/g, "");
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }
