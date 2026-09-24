@@ -1,4 +1,5 @@
 import { DataBadge, DATA_ORIGINS } from "@/components/DataBadge";
+import { hasTotal } from "@/lib/client/result-view";
 import { dataOriginCopy } from "@/lib/data-origin";
 import { LeafMark } from "@/components/LeafMark";
 import { formatAmount, formatDateTime, formatKg, receiptNumber } from "@/lib/format";
@@ -64,11 +65,11 @@ export function CarbonReceipt({ result }: CarbonReceiptProps) {
             </span>{" "}
             Cómo leer este recibo
           </summary>
-          <ul className="mt-2 flex flex-col gap-1.5">
+          <ul className="mt-3 flex flex-col gap-2">
             {DATA_ORIGINS.map((origin) => (
-              <li key={origin} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <li key={origin} className="flex flex-col gap-0.5">
                 <DataBadge origin={origin} mode={result.mode} />
-                <span className="font-sans text-ink-soft">{dataOriginCopy(origin, result.mode).description}</span>
+                <span className="pl-3.5 font-sans text-ink-soft">{dataOriginCopy(origin, result.mode).description}</span>
               </li>
             ))}
           </ul>
@@ -77,18 +78,20 @@ export function CarbonReceipt({ result }: CarbonReceiptProps) {
         <Rule />
 
         {/* Líneas */}
-        <ol aria-label="Consumos calculados" className="flex flex-col">
-          {result.lines.map((line, index) => (
-            <li key={line.id} className="flex flex-col">
-              {index > 0 && <Rule />}
-              <ReceiptLineItem line={line} index={index} mode={result.mode} />
-            </li>
-          ))}
-        </ol>
+        {result.lines.length > 0 && (
+          <ol aria-label="Consumos calculados" className="flex flex-col">
+            {result.lines.map((line, index) => (
+              <li key={line.id} className="flex flex-col">
+                {index > 0 && <Rule />}
+                <ReceiptLineItem line={line} index={index} mode={result.mode} />
+              </li>
+            ))}
+          </ol>
+        )}
 
         {result.unquantified.length > 0 && (
           <>
-            <Rule />
+            {result.lines.length > 0 && <Rule />}
             <section aria-labelledby="unquantified-title" className="flex flex-col gap-2">
               <h3
                 id="unquantified-title"
@@ -124,21 +127,36 @@ export function CarbonReceipt({ result }: CarbonReceiptProps) {
           aria-label="Total estimado"
           className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 pt-4"
         >
-          <div className="flex flex-col gap-1">
-            <p className="text-xs uppercase tracking-widest text-ink-soft">Total estimado</p>
-            <p className="flex items-baseline gap-2">
-              <span className="font-display text-5xl font-medium tabular-nums leading-none tracking-tight text-ink">
-                {formatKg(result.totalKg)}
+          {hasTotal(result) ? (
+            <>
+              <div className="flex flex-col gap-1">
+                <p className="text-xs uppercase tracking-widest text-ink-soft">Total estimado</p>
+                <p className="flex items-baseline gap-2">
+                  <span className="font-display text-5xl font-medium tabular-nums leading-none tracking-tight text-ink">
+                    {formatKg(result.totalKg)}
+                  </span>
+                  <span className="text-sm">kg CO₂e</span>
+                </p>
+                <p className="text-xs text-ink-soft">
+                  ≈ {formatAmount(result.totalKg / 1000, 2)} toneladas de CO₂ equivalente
+                </p>
+              </div>
+              <span className="pointer-events-none mr-1 rotate-[-9deg] select-none rounded-sm border-2 border-clay-deep/85 px-2 py-0.5 text-xs font-bold uppercase tracking-[0.2em] text-clay-deep outline-1 outline-offset-2 outline-clay-deep/50 [outline-style:solid]">
+                Estimación
               </span>
-              <span className="text-sm">kg CO₂e</span>
-            </p>
-            <p className="text-xs text-ink-soft">
-              ≈ {formatAmount(result.totalKg / 1000, 2)} toneladas de CO₂ equivalente
-            </p>
-          </div>
-          <span className="pointer-events-none mr-1 rotate-[-9deg] select-none rounded-sm border-2 border-clay-deep/85 px-2 py-0.5 text-xs font-bold uppercase tracking-[0.2em] text-clay-deep outline-1 outline-offset-2 outline-clay-deep/50 [outline-style:solid]">
-            Estimación
-          </span>
+            </>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <p className="text-xs uppercase tracking-widest text-ink-soft">Total</p>
+              <p className="font-display text-3xl font-medium leading-none text-ink-soft">
+                Sin total
+              </p>
+              <p className="font-sans text-xs leading-relaxed text-ink-soft">
+                Todavía no hay nada que podamos sumar sin inventar. Corrige el dato y lo
+                calculamos.
+              </p>
+            </div>
+          )}
         </section>
 
         <Rule />
@@ -168,10 +186,10 @@ function ReceiptLineItem({
   mode: AnalysisResult["mode"];
 }) {
   return (
-    <div className="flex flex-col gap-2 py-1">
-      <p className="flex items-baseline justify-between gap-3">
+    <div className="flex flex-col gap-1.5 py-1">
+      <p className="mb-1 flex items-baseline justify-between gap-3">
         <span className="font-semibold uppercase">
-          <span className="text-ink-soft">{String(index + 1).padStart(2, "0")} </span>
+          <span className="font-normal text-ink-faint">{String(index + 1).padStart(2, "0")} </span>
           {line.label}
         </span>
         <span className="shrink-0 font-semibold tabular-nums">{formatKg(line.kgCO2e)} kg</span>
@@ -182,28 +200,22 @@ function ReceiptLineItem({
         <q className="font-sans italic">{line.quote}</q>
       </p>
 
-      <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <DataBadge origin="ai" mode={mode} />
-        <span>{line.interpreted}</span>
-      </p>
-
-      {line.steps.length > 0 && (
-        <ul aria-label="Pasos del cálculo" className="flex flex-col pl-1 text-ink-soft">
-          {line.steps.map((step) => (
-            <li key={step} className="tabular-nums">
-              <span aria-hidden="true">↳ </span>
-              {step}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {line.assumptions.map((assumption) => (
-        <p key={assumption} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <DataBadge origin="assumption" mode={mode} />
-          <span className="font-sans text-xs">{assumption}</span>
+      <div className="flex flex-col">
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <DataBadge origin="ai" mode={mode} />
+          <span>{line.interpreted}</span>
         </p>
-      ))}
+        {line.steps.length > 0 && (
+          <ul aria-label="Pasos del cálculo" className="flex flex-col pl-3.5 text-ink-soft">
+            {line.steps.map((step) => (
+              <li key={step} className="tabular-nums">
+                <span aria-hidden="true">↳ </span>
+                {step}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <DataBadge origin="factor" mode={mode} />
@@ -212,13 +224,24 @@ function ReceiptLineItem({
         </span>
       </p>
 
-      {/* La operación: cantidad × factor = resultado */}
-      <p className="mt-1 flex flex-wrap items-baseline justify-end gap-x-2 rounded-sm bg-paper-deep/60 px-2 py-1 tabular-nums">
-        <span>
-          {formatAmount(line.activityAmount)} {line.activityUnit} × {formatAmount(line.factor.value, 3)}{" "}
-          {line.factor.unit}
+      {line.assumptions.length > 0 && (
+        <ul aria-label="Supuestos" className="flex flex-col gap-0.5">
+          {line.assumptions.map((assumption) => (
+            <li key={assumption} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <DataBadge origin="assumption" mode={mode} />
+              <span className="font-sans text-xs text-ink-faint">{assumption}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* La operación: cantidad × factor = resultado. Es lo que más importa: que respire. */}
+      <p className="mt-2 flex flex-wrap items-baseline justify-end gap-x-2 text-right text-sm tabular-nums">
+        <span className="text-ink-soft">
+          {formatAmount(line.activityAmount)} {line.activityUnit} ×{" "}
+          {formatAmount(line.factor.value, 3)} {line.factor.unit}
         </span>
-        <span className="font-semibold">= {formatKg(line.kgCO2e)} kg CO₂e</span>
+        <span className="font-semibold text-ink">= {formatKg(line.kgCO2e)} kg CO₂e</span>
       </p>
     </div>
   );

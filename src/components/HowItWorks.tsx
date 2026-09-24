@@ -5,7 +5,7 @@ const STEPS = [
   },
   {
     title: "Eco lo interpreta y calcula",
-    body: "La IA entiende tu texto; el cálculo lo hace nuestro código con factores de emisión referenciales.",
+    body: "Eco lee tu texto —con IA cuando está disponible, o con reglas simples si no— y nuestro código hace el cálculo con factores de emisión referenciales.",
   },
   {
     title: "Recibe tu recibo de carbono",
@@ -17,18 +17,19 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section aria-labelledby="how-title" className="flex flex-col gap-4">
-      <h2 id="how-title" className="font-mono text-xs uppercase tracking-widest text-ink-soft">
+      <h2 id="how-title" className="section-label">
         Cómo funciona
       </h2>
-      <ol className="grid gap-4 sm:grid-cols-3">
+      <ol className="grid gap-6 sm:grid-cols-3 sm:gap-8">
         {STEPS.map((step, index) => (
           <li
             key={step.title}
-            className="flex flex-col gap-2 border-t border-dashed border-ink/25 pt-4"
+            className="relative flex flex-col gap-2 pt-4"
           >
+            <span aria-hidden="true" className="dotted-rule absolute inset-x-0 top-0" />
             <span
               aria-hidden="true"
-              className="font-display text-3xl font-medium italic leading-none text-moss"
+              className="font-display text-2xl font-medium italic leading-none text-moss"
             >
               {index + 1}.
             </span>

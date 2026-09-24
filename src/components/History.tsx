@@ -8,6 +8,7 @@ import {
   getHistorySnapshot,
   subscribeHistory,
 } from "@/lib/client/history";
+import { hasTotal } from "@/lib/client/result-view";
 import { firstWords, formatKg, formatShortDate } from "@/lib/format";
 import type { AnalysisResult } from "@/lib/types";
 
@@ -24,10 +25,7 @@ export function History({ activeId, onOpen }: HistoryProps) {
   return (
     <section aria-labelledby="history-title" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2
-          id="history-title"
-          className="font-mono text-xs uppercase tracking-widest text-ink-soft"
-        >
+        <h2 id="history-title" className="section-label">
           Tus días anteriores
         </h2>
         {items.length > 0 &&
@@ -64,11 +62,11 @@ export function History({ activeId, onOpen }: HistoryProps) {
       </div>
 
       {items.length === 0 ? (
-        <p className="rounded-sm border border-dashed border-ink/20 px-4 py-3 text-sm text-ink-soft">
+        <p className="text-sm text-ink-soft">
           Aún no hay días guardados. Cada cálculo se guarda aquí, sólo en este navegador.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-dashed divide-ink/15 rounded-sm border border-ink/15 bg-paper/60">
+        <ul className="-mx-3 flex flex-col divide-y divide-dashed divide-ink/15">
           {items.map((item) => {
             const active = item.id === activeId;
             return (
@@ -77,7 +75,7 @@ export function History({ activeId, onOpen }: HistoryProps) {
                   type="button"
                   onClick={() => onOpen(item)}
                   aria-current={active ? "true" : undefined}
-                  className={`grid w-full grid-cols-[auto_1fr_auto] items-baseline gap-3 px-4 py-2.5 text-left transition-colors hover:bg-paper-deep/80 ${
+                  className={`grid w-full grid-cols-[auto_1fr_auto] items-baseline gap-3 rounded-sm px-3 py-2.5 text-left transition-colors hover:bg-paper-deep/60 ${
                     active ? "bg-lichen/20" : ""
                   }`}
                 >
@@ -85,8 +83,8 @@ export function History({ activeId, onOpen }: HistoryProps) {
                     {formatShortDate(item.createdAt)}
                   </span>
                   <span className="truncate text-sm text-ink">{firstWords(item.input)}</span>
-                  <span className="font-mono text-sm font-semibold tabular-nums text-ink">
-                    {formatKg(item.totalKg)} kg
+                  <span className="font-mono text-sm tabular-nums text-ink">
+                    {hasTotal(item) ? `${formatKg(item.totalKg)} kg` : "sin total"}
                   </span>
                 </button>
               </li>

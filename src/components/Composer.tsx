@@ -55,10 +55,7 @@ export function Composer({ value, onChange, onSubmit, busy, textareaRef }: Compo
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
       <div className="flex flex-col gap-3">
-        <label
-          htmlFor={fieldId}
-          className="font-mono text-xs uppercase tracking-widest text-ink-soft"
-        >
+        <label htmlFor={fieldId} className="section-label">
           Hoy, en mi negocio…
         </label>
 
@@ -110,7 +107,7 @@ export function Composer({ value, onChange, onSubmit, busy, textareaRef }: Compo
       </div>
 
       <fieldset className="flex flex-col gap-2" disabled={busy}>
-        <legend className="mb-2 font-mono text-[0.7rem] uppercase tracking-widest text-ink-soft">
+        <legend className="section-label mb-2">
           ¿Sin ideas? Prueba un ejemplo
         </legend>
         <ul className="flex flex-wrap gap-2">

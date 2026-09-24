@@ -11,13 +11,13 @@ export function ModeBadge({ mode, model }: ModeBadgeProps) {
   return (
     <details className="group relative inline-block">
       <summary
-        className={`inline-flex cursor-pointer list-none items-center gap-2 rounded-full border px-3 py-1 font-mono text-[0.7rem] uppercase tracking-wider [&::-webkit-details-marker]:hidden ${
-          isAi ? "border-ink/60 bg-signal text-ink" : "border-dashed border-ink/40 bg-paper text-ink"
+        className={`inline-flex cursor-pointer list-none items-center gap-2 rounded-full border px-2.5 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider [&::-webkit-details-marker]:hidden ${
+          isAi ? "border-moss/50 text-moss" : "border-dashed border-ink/35 text-ink-soft"
         }`}
       >
         <span
           aria-hidden="true"
-          className={`h-2 w-2 rounded-full ${isAi ? "bg-moss" : "border border-ink/60"}`}
+          className={`h-2 w-2 rounded-full ${isAi ? "bg-moss" : "border border-dashed border-ink-soft"}`}
         />
         {isAi ? "IA · Claude" : "Modo demo · interpretación simulada"}
         <span aria-hidden="true" className="text-ink-soft group-open:rotate-180">

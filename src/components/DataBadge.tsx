@@ -2,15 +2,20 @@ import { dataOriginCopy, type DataOrigin, type InterpreterMode } from "@/lib/dat
 
 export { DATA_ORIGINS, type DataOrigin } from "@/lib/data-origin";
 
-const STYLES: Record<DataOrigin, string> = {
-  user: "border-moss/50 bg-lichen/35 text-ink",
-  ai: "border-ink/60 bg-signal text-ink",
-  assumption: "border-clay/70 border-dashed bg-clay/10 text-clay-deep",
-  factor: "border-ink/30 bg-paper-deep text-ink-soft",
+/**
+ * Marca de cada origen: un punto pequeño que varía en forma además de en color, para que
+ * no dependa sólo del color (lleno = lo dijiste, anillo = interpretado, rombo = supuesto,
+ * cuadrado = factor). El texto siempre acompaña.
+ */
+const MARKS: Record<DataOrigin, string> = {
+  user: "rounded-full bg-moss",
+  ai: "rounded-full border-[1.5px] border-moss",
+  assumption: "rotate-45 rounded-[1px] bg-clay-deep",
+  factor: "rounded-[1px] border-[1.5px] border-ink-faint",
 };
 
-/** En modo demo la insignia de "interpretado" no usa el acento de IA. */
-const DEMO_INTERPRETED_STYLE = "border-ink/50 border-dashed bg-paper text-ink";
+/** En modo demo el anillo de "interpretado" va punteado: no lo leyó la IA. */
+const DEMO_INTERPRETED_MARK = "rounded-full border-[1.5px] border-dashed border-ink-faint";
 
 type DataBadgeProps = {
   origin: DataOrigin;
@@ -19,15 +24,21 @@ type DataBadgeProps = {
   className?: string;
 };
 
-/** Insignia de origen del dato: distingue lo dicho, lo interpretado, lo supuesto y lo referencial. */
+/**
+ * Insignia de origen del dato, en voz baja: punto + texto corto, sin caja.
+ * Distingue lo dicho, lo interpretado, lo supuesto y lo referencial.
+ */
 export function DataBadge({ origin, mode, className = "" }: DataBadgeProps) {
   const copy = dataOriginCopy(origin, mode);
-  const style = origin === "ai" && mode === "demo" ? DEMO_INTERPRETED_STYLE : STYLES[origin];
+  const mark = origin === "ai" && mode === "demo" ? DEMO_INTERPRETED_MARK : MARKS[origin];
   return (
     <span
       title={copy.description}
-      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-sm border px-1.5 py-px font-mono text-[0.625rem] font-medium uppercase leading-4 tracking-wider ${style} ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap font-sans text-[0.6875rem] leading-4 ${
+        origin === "assumption" ? "text-clay-deep" : "text-ink-faint"
+      } ${className}`}
     >
+      <span aria-hidden="true" className={`inline-block h-[7px] w-[7px] shrink-0 ${mark}`} />
       {copy.label}
     </span>
   );

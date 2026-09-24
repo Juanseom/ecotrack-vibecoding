@@ -12,10 +12,7 @@ export function ValidationNotice({ validation, onAnswer }: ValidationNoticeProps
 
   return (
     <section aria-labelledby="validation-title" className="flex flex-col gap-3">
-      <h2
-        id="validation-title"
-        className="font-mono text-xs uppercase tracking-widest text-ink-soft"
-      >
+      <h2 id="validation-title" className="section-label">
         Revisión de tus datos
       </h2>
 
@@ -26,14 +23,12 @@ export function ValidationNotice({ validation, onAnswer }: ValidationNoticeProps
             return (
               <li
                 key={issue.message}
-                className={`flex gap-3 rounded-sm border-l-2 px-3 py-2 text-sm leading-relaxed text-ink ${
-                  warning ? "border-clay bg-clay/10" : "border-lichen bg-lichen/20"
-                }`}
+                className="flex gap-3 text-sm leading-relaxed text-ink"
               >
                 <span
                   aria-hidden="true"
-                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-xs font-semibold ${
-                    warning ? "bg-clay-deep text-paper" : "bg-moss text-paper"
+                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border font-mono text-[0.7rem] font-semibold ${
+                    warning ? "border-clay-deep text-clay-deep" : "border-moss/60 text-moss"
                   }`}
                 >
                   {warning ? "!" : "i"}
@@ -51,11 +46,9 @@ export function ValidationNotice({ validation, onAnswer }: ValidationNoticeProps
       )}
 
       {clarifyingQuestion && (
-        <div className="flex flex-col gap-3 rounded-sm border border-ink/15 bg-paper-deep/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-1 flex flex-col gap-3 border-l-2 border-moss pl-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
-            <p className="font-mono text-[0.7rem] uppercase tracking-widest text-ink-soft">
-              Eco pregunta
-            </p>
+            <p className="section-label">Eco pregunta</p>
             <p className="font-display text-lg leading-snug text-ink">{clarifyingQuestion}</p>
           </div>
           {onAnswer && (

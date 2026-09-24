@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { AnalysisCard } from "@/components/AnalysisCard";
 import { Breakdown } from "@/components/Breakdown";
 import { CarbonReceipt } from "@/components/CarbonReceipt";
 import { Composer } from "@/components/Composer";
@@ -12,8 +11,10 @@ import { HowItWorks } from "@/components/HowItWorks";
 import { ModeBadge } from "@/components/ModeBadge";
 import { PipelineProgress } from "@/components/PipelineProgress";
 import { Recommendations } from "@/components/Recommendations";
+import { ResultSummary } from "@/components/ResultSummary";
 import { ValidationNotice } from "@/components/ValidationNotice";
 import { saveToHistory } from "@/lib/client/history";
+import { hasTotal } from "@/lib/client/result-view";
 import {
   pipelineForResult,
   pipelineReducer,
@@ -108,7 +109,15 @@ export function EcoTrackApp() {
 
   function answerQuestion(question: string) {
     const base = (text.trim() || result?.input || "").trim();
-    const next = `${base}\n\nSobre «${question}»: `.slice(0, MAX_INPUT_LENGTH);
+    focusComposer(`${base}\n\nSobre «${question}»: `.slice(0, MAX_INPUT_LENGTH));
+  }
+
+  /** Total 0: vuelve al texto (el que se envió) para corregir el dato. */
+  function correctInput() {
+    focusComposer((text.trim() || result?.input || "").trim());
+  }
+
+  function focusComposer(next: string) {
     setText(next);
     const field = textareaRef.current;
     if (!field) return;
@@ -134,47 +143,62 @@ export function EcoTrackApp() {
       </section>
 
       {phase !== "idle" && (
-        <div ref={progressRef} className="scroll-mb-6">
-          <PipelineProgress pipeline={pipeline} />
-        </div>
-      )}
-
-      {phase === "error" && error && (
-        <div className="max-w-3xl">
-          <ErrorState
-            error={error}
-            onRetry={() => analyze(lastSubmitted)}
-            onRetryDemo={() => analyze(lastSubmitted, "demo")}
-          />
-        </div>
-      )}
-
-      {phase === "result" && result && (
-        <div
-          ref={resultRef}
-          tabIndex={-1}
-          aria-label="Resultado del análisis"
-          role="region"
-          className="flex scroll-mt-6 flex-col gap-6 outline-none animate-rise"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dashed border-ink/20 pb-4">
-            <p className="font-mono text-xs uppercase tracking-widest text-ink-soft">
-              Tu recibo · {formatDateTime(result.createdAt)}
-            </p>
-            <ModeBadge mode={result.mode} model={result.model} />
+        <div className="flex flex-col gap-6">
+          <div ref={progressRef} className="scroll-mb-6">
+            <PipelineProgress pipeline={pipeline} />
           </div>
 
-          <div className="grid items-start gap-10 lg:grid-cols-[440px_minmax(0,1fr)] lg:gap-12">
-            <div className="mx-auto w-full max-w-[440px]">
-              <CarbonReceipt result={result} />
+          {phase === "error" && error && (
+            <div className="max-w-3xl">
+              <ErrorState
+                error={error}
+                onRetry={() => analyze(lastSubmitted)}
+                onRetryDemo={() => analyze(lastSubmitted, "demo")}
+              />
             </div>
-            <div className="flex min-w-0 flex-col gap-10">
-              <AnalysisCard analysis={result.analysis} />
-              <Breakdown byCategory={result.byCategory} equivalences={result.equivalences} />
-              <ValidationNotice validation={result.validation} onAnswer={answerQuestion} />
-              <Recommendations recommendations={result.recommendations} />
+          )}
+
+          {phase === "result" && result && (
+            <div
+              ref={resultRef}
+              tabIndex={-1}
+              aria-label="Resultado del análisis"
+              role="region"
+              className="flex scroll-mt-6 flex-col gap-8 outline-none animate-rise"
+            >
+              <div className="flex flex-col gap-3">
+                <div aria-hidden="true" className="dotted-rule" />
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="section-label">Tu recibo · {formatDateTime(result.createdAt)}</p>
+                  <ModeBadge mode={result.mode} model={result.model} />
+                </div>
+              </div>
+
+              {/*
+               * Orden del DOM = orden en el celular: primero el número y la frase de Eco,
+               * luego lo que se puede hacer y, al final, el recibo con todo el detalle.
+               * En escritorio el recibo vuelve a la columna izquierda.
+               */}
+              <div className="grid items-start gap-12 lg:grid-cols-[440px_minmax(0,1fr)] lg:gap-14">
+                <div className="flex min-w-0 flex-col gap-10 lg:col-start-2 lg:row-start-1">
+                  <ResultSummary
+                    result={result}
+                    // Si Eco ya pregunta algo, su botón «Responder» es la acción: no duplicamos.
+                    onCorrect={result.validation.clarifyingQuestion ? undefined : correctInput}
+                  />
+                  <ValidationNotice validation={result.validation} onAnswer={answerQuestion} />
+                  {hasTotal(result) && <Breakdown byCategory={result.byCategory} />}
+                  <Recommendations recommendations={result.recommendations} />
+                </div>
+                <div
+                  id="recibo"
+                  className="mx-auto w-full max-w-[440px] scroll-mt-6 lg:col-start-1 lg:row-start-1"
+                >
+                  <CarbonReceipt result={result} />
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

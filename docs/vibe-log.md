@@ -133,3 +133,19 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 | Decisiones | Guion pegado a un número = negativo (lado seguro: no se calcula y se pregunta). `retryable` y `mode` como campos **opcionales** del stream para no romper el contrato. |
 | Pendiente detectado al revisar capturas | Con total 0 la página muestra "¿De dónde viene?" vacío y "≈ 0 km / 0,0 árboles"; `HowItWorks` aún dice "La IA entiende tu texto". → Iteración 7. |
 | Evidencia | `06-f1-negativo.png`, `06-ui1-sin-datos.png`, `06-ui2-clave-invalida.png`, `06-ui3-sin-conexion.png`, `06-h1-recibo-demo.png`, `docs/evidence/test-matrix-results.md` (19/19). |
+
+---
+
+## Entrada 7 — Refinamiento visual en lenguaje natural
+
+| Campo | Detalle |
+|---|---|
+| Fecha | 2026-09-24 13:00 |
+| Etapa | Iteración 7 · Mejora visual |
+| Objetivo | Cumplir la instrucción del taller "refina la interfaz pidiendo cambios en lenguaje natural": una app más minimalista, tranquila y verde, con el número primero. |
+| Prompt utilizado | [`docs/prompts/iter-07-refinamiento-visual.md`](prompts/iter-07-refinamiento-visual.md). Redactado **a propósito como petición de diseño en lenguaje natural** ("Imagina que el dueño de una panadería la abre en su celular a las 9 de la noche…", "Más verde, menos arcoíris", "Cuando no hay nada que sumar, no finjas"), tras revisar las capturas "antes". |
+| Acción realizada | Nuevo `ResultSummary` (total + frase de Eco primero; en móvil antes del recibo), insignias como punto + texto (con forma distinta además del color), paleta de categorías verde/tierra validada para daltonismo, `signal` reservado a la etapa en curso, menos cajas (líneas punteadas), estado honesto con total 0, pipeline plegado en una línea, sección "Cómo calculamos" generada desde `factors.ts`, enlace a GitHub, texto de "Cómo funciona" verdadero en ambos modos. |
+| Resultado | **183 tests** (3 nuevos), build/lint en verde (re-verificado). En 390 px el total y la frase de Eco caben en la primera pantalla tras el resultado; 0 scroll horizontal a 375 px. |
+| Problemas | Contraste: `lichen` como texto daba 1,7:1 → no se usa como texto; nuevo token `ink-faint` (5,0:1 sobre papel). Scripts de verificación del sub-agente: `ERR_MODULE_NOT_FOUND: Cannot find package 'playwright'` desde el scratchpad (resuelto importando desde `node_modules` del repo). |
+| Decisiones | En escritorio el recibo sigue a la izquierda (grilla), pero el orden del DOM prioriza el resumen para lectores de pantalla y móvil. |
+| Evidencia | Antes/después: `07-antes-vacio.png` → `07-despues-vacio.png`, `07-antes-resultado.png` → `07-despues-resultado.png`, `07-antes-mobile.png` → `07-despues-mobile.png`, `07-antes-total-cero.png` → `07-despues-total-cero.png`. |

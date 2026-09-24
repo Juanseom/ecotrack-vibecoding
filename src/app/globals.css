@@ -21,6 +21,9 @@
   --color-clay-deep: #9a4524; /* Texto sobre fondos claros cuando el tono es clay (AA) */
   --color-signal-soft: #eef9d2; /* Fondo tenue de lo que hace la IA */
 
+  /* Derivados (iteración 7): voz baja */
+  --color-ink-faint: #5b6b60; /* Rótulos discretos: 5,0:1 sobre paper, 5,5:1 sobre receipt (AA). No usar sobre paper-deep. */
+
   /* Movimiento: corto y sutil; desactivado con prefers-reduced-motion */
   --animate-stage-pulse: stage-pulse 1.4s ease-in-out infinite;
   --animate-rise: rise 240ms ease-out both;
@@ -173,6 +176,30 @@
     transparent 19px 22px
   );
   background-size: 22px 100%;
+}
+
+/*
+ * Rótulo de sección (iteración 7): mono en mayúsculas, pero pequeño y en voz baja
+ * para que no compita con el contenido.
+ */
+@utility section-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+/* Línea fina punteada, como un renglón de cuaderno: separa sin encajonar. */
+@utility dotted-rule {
+  height: 1px;
+  background-image: linear-gradient(
+    to right,
+    rgb(22 36 28 / 0.28) 0 1px,
+    transparent 1px 4px
+  );
+  background-size: 4px 1px;
 }
 
 /* Área de texto con renglones: los renglones se desplazan con el texto. */
