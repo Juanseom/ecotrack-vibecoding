@@ -1,36 +1,33 @@
 # PROJECT STATUS
 
 Producto: **EcoTrack AI**
-Última actualización: 2026-09-24 11:15
+Última actualización: 2026-09-24 12:55
 
-**Fase actual:** Iteración 0 terminada → Iteración 1 (estructura inicial)
+**Fase actual:** Iteración 8 terminada: MVP desplegado y documentado.
 
 **Completado:**
-- Análisis del taller y rúbrica → `docs/01-analisis-taller.md`
-- Master Prompt v1.0 → `docs/master-prompt.md`
-- Arquitectura inicial → `docs/architecture.md`
-- Bitácora iniciada → `docs/vibe-log.md`
+- Iteración 0 · Análisis, Master Prompt, arquitectura, roadmap
+- Iteración 1 · Estructura Next.js + sistema de diseño
+- Iteración 2 · Interfaz completa (recibo de carbono)
+- Iteración 3 · Motor de cálculo, API en streaming, modo demo
+- Iteración 4 · Intérprete Claude con 4 prompts
+- Iteración 5 · Matriz QA (17/19) + pruebas de interfaz
+- Iteración 6 · Debugging con IA (19/19, 180 pruebas)
+- Iteración 7 · Refinamiento visual en lenguaje natural (183 pruebas)
+- Iteración 8 · Despliegue en Vercel verificado, README, Bitácora (MD + PDF), testing, guion de video, presentación, auditoría
 
-**En progreso:**
-- —
+**En progreso:** —
 
-**Pendiente (roadmap):**
-| Iter. | Objetivo | Resultado verificable |
-|---|---|---|
-| 1 | Estructura inicial: Next.js + Tailwind + tokens de diseño + tipografías | `npm run build` OK; captura de la página base |
-| 2 | Interfaz: composer, pipeline, recibo con datos de ejemplo | Captura de la primera interfaz |
-| 3 | Flujo principal: motor de cálculo + parser demo + `/api/analyze` en streaming | Flujo completo en modo demo; tests del motor |
-| 4 | Integración de IA: 4 prompts con Claude + Zod | Análisis real con Claude; `docs/ai-prompts.md` |
-| 5 | Pruebas: matriz de 10+ casos ejecutados | `docs/testing.md` con resultados reales |
-| 6 | Corrección de errores encontrados | `docs/debugging.md` |
-| 7 | Refinamiento visual pedido en lenguaje natural | Capturas antes/después |
-| 8 | Demo: README, despliegue en Vercel, guion de video, presentación, auditoría | URL comprobada |
+**Pendiente (requiere al estudiante):**
+- Configurar `ANTHROPIC_API_KEY` en Vercel para activar la IA real y verificarla.
+- Grabar el video demo (`docs/demo-script.md`).
 
-**Bloqueos:**
-- `ANTHROPIC_API_KEY` (necesaria en la iteración 4 para IA real; hasta entonces, modo demo).
-- Cuenta/autorización de Vercel (iteración 8).
+**Bloqueos:** ninguno técnico. La IA real está bloqueada sólo por la decisión de no proporcionar API key.
 
-**Evidencia disponible:**
-- Documentos de la iteración 0.
+**Evidencia disponible:** 30 capturas (`docs/evidence/screenshots/`), resultados de la matriz en local y en producción (`docs/evidence/`), diagnóstico de debugging, 7 prompts de iteración, bitácora completa, historial de commits.
 
-**Próxima acción:** escribir `docs/prompts/iter-01-estructura.md` y ejecutarlo con un sub-agente generador.
+**URLs:**
+- Producción: https://ecotrack-vibecoding.vercel.app
+- Repositorio: https://github.com/Juanseom/ecotrack-vibecoding
+
+**Próxima acción:** entregar.

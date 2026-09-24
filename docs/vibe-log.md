@@ -1,7 +1,7 @@
 # Bitácora de Vibe Coding — EcoTrack AI
 
 > Registro cronológico escrito **durante** el desarrollo. Cada entrada se agrega al terminar la etapa correspondiente.
-> Zona horaria: America/Bogota (UTC−5).
+> Zona horaria: America/Bogota (UTC−5). Las horas de cada entrada corresponden al commit de la iteración (`git log`).
 
 ## Estrategia de Vibe Coding
 
@@ -21,7 +21,7 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 
 | Campo | Detalle |
 |---|---|
-| Fecha | 2026-09-24 11:05 |
+| Fecha | 2026-09-24 11:05 (commit `3463de5` 11:07) |
 | Etapa | Iteración 0 · Definición |
 | Objetivo | Entender el taller, convertir la rúbrica en criterios verificables y definir producto, vibe, arquitectura y roadmap antes de escribir código. |
 | Prompt utilizado | Meta-prompt del estudiante ("ROL: AGENTE PRINCIPAL DEL PROYECTO CAPSTONE – ECOTRACK AI") + documento oficial del taller. |
@@ -38,7 +38,7 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 
 | Campo | Detalle |
 |---|---|
-| Fecha | 2026-09-24 11:25 |
+| Fecha | 2026-09-24 11:13 (commit `c0688c9`) |
 | Etapa | Iteración 1 · Estructura |
 | Objetivo | Proyecto Next.js que compile, con los tokens de diseño, las tres tipografías y una portada con identidad. |
 | Prompt utilizado | [`docs/prompts/iter-01-estructura.md`](prompts/iter-01-estructura.md), entregado literalmente a un sub-agente generador. |
@@ -55,7 +55,7 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 
 | Campo | Detalle |
 |---|---|
-| Fecha | 2026-09-24 11:45 |
+| Fecha | 2026-09-24 11:27 (commit `e097057`) |
 | Etapa | Iteración 2 · Interfaz |
 | Objetivo | Toda la interfaz del flujo principal sobre un contrato de tipos fijo, alimentada por un resultado de ejemplo, para que la API se conecte después sin rehacer la UI. |
 | Prompt utilizado | [`docs/prompts/iter-02-interfaz.md`](prompts/iter-02-interfaz.md). A partir de esta iteración el prompt se entrega al sub-agente **por referencia** ("tu única instrucción es el prompt guardado en … ejecútalo tal cual"): el texto que recibe es exactamente el del archivo versionado. |
@@ -72,7 +72,7 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 
 | Campo | Detalle |
 |---|---|
-| Fecha | 2026-09-24 11:50 |
+| Fecha | 2026-09-24 11:47 (commit `36622f0`) |
 | Etapa | Iteración 3 · Flujo principal |
 | Objetivo | Funcionamiento de extremo a extremo con cualquier texto, dejando un "hueco" (`Interpreter`) para que Claude reemplace al intérprete demo sin tocar UI ni cálculo. |
 | Prompt utilizado | [`docs/prompts/iter-03-flujo-principal.md`](prompts/iter-03-flujo-principal.md) (entregado por referencia). |
@@ -89,7 +89,7 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 
 | Campo | Detalle |
 |---|---|
-| Fecha | 2026-09-24 12:20 |
+| Fecha | 2026-09-24 11:56 (commit `accb3ce`; decisión sobre la API key 12:09) |
 | Etapa | Iteración 4 · Integración de IA |
 | Objetivo | Intérprete `ClaudeInterpreter` con 4 llamadas (extracción, validación, análisis, recomendaciones), cada una con prompt de sistema propio y salida estructurada validada con Zod. |
 | Prompt utilizado | [`docs/prompts/iter-04-integracion-ia.md`](prompts/iter-04-integracion-ia.md). Los 4 prompts de producto los diseñó el agente principal (ver `docs/ai-prompts.md`); el sub-agente los copió al código con un script y verificó que fueran idénticos al `.md`. |
@@ -106,7 +106,7 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 
 | Campo | Detalle |
 |---|---|
-| Fecha | 2026-09-24 12:15 |
+| Fecha | 2026-09-24 12:16 (commit `55e4fe4`) |
 | Etapa | Iteración 5 · Pruebas |
 | Objetivo | Ejecutar una matriz de pruebas con expectativas verificables y **encontrar** fallos (sin arreglarlos). |
 | Prompt utilizado | [`docs/prompts/iter-05-pruebas.md`](prompts/iter-05-pruebas.md) (sub-agente en rol QA, con prohibición de tocar `src/`). |
@@ -122,7 +122,7 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 
 | Campo | Detalle |
 |---|---|
-| Fecha | 2026-09-24 12:40 |
+| Fecha | 2026-09-24 12:31 (commit `b5d2208`) |
 | Etapa | Iteración 6 · Corrección de errores |
 | Objetivo | Resolver con IA, sin código manual, los fallos reales de la iteración 5 y el defecto de honestidad detectado en la 3. |
 | Prompt utilizado | [`docs/prompts/iter-06-debugging.md`](prompts/iter-06-debugging.md): **fase 1** diagnóstico escrito antes de tocar `src/` (reproducción + causa raíz archivo:línea + riesgo); **fase 2** corrección con prueba de regresión que falle antes y pase después. |
@@ -140,7 +140,7 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 
 | Campo | Detalle |
 |---|---|
-| Fecha | 2026-09-24 13:00 |
+| Fecha | 2026-09-24 12:45 (commit `5ae861b`) |
 | Etapa | Iteración 7 · Mejora visual |
 | Objetivo | Cumplir la instrucción del taller "refina la interfaz pidiendo cambios en lenguaje natural": una app más minimalista, tranquila y verde, con el número primero. |
 | Prompt utilizado | [`docs/prompts/iter-07-refinamiento-visual.md`](prompts/iter-07-refinamiento-visual.md). Redactado **a propósito como petición de diseño en lenguaje natural** ("Imagina que el dueño de una panadería la abre en su celular a las 9 de la noche…", "Más verde, menos arcoíris", "Cuando no hay nada que sumar, no finjas"), tras revisar las capturas "antes". |
@@ -149,3 +149,31 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 | Problemas | Contraste: `lichen` como texto daba 1,7:1 → no se usa como texto; nuevo token `ink-faint` (5,0:1 sobre papel). Scripts de verificación del sub-agente: `ERR_MODULE_NOT_FOUND: Cannot find package 'playwright'` desde el scratchpad (resuelto importando desde `node_modules` del repo). |
 | Decisiones | En escritorio el recibo sigue a la izquierda (grilla), pero el orden del DOM prioriza el resumen para lectores de pantalla y móvil. |
 | Evidencia | Antes/después: `07-antes-vacio.png` → `07-despues-vacio.png`, `07-antes-resultado.png` → `07-despues-resultado.png`, `07-antes-mobile.png` → `07-despues-mobile.png`, `07-antes-total-cero.png` → `07-despues-total-cero.png`. |
+
+---
+
+## Entrada 8 — Despliegue y preparación de la demo
+
+| Campo | Detalle |
+|---|---|
+| Fecha | 2026-09-24 12:48–12:55 |
+| Etapa | Iteración 8 · Demo |
+| Objetivo | Proyecto vivo verificado + documentación de entrega. |
+| Prompt utilizado | Ninguno de generación de código: iteración de despliegue, verificación y redacción hecha por el agente principal (roles DevOps, QA y Technical Writer). |
+| Acción realizada | `npx vercel whoami` → sesión ya iniciada (`juanseom13-7049`). `npx vercel deploy --prod --yes` (Vercel CLI 60.0.0) → despliegue `ecotrack-vibecoding-rknc0pyn5-juanseom.vercel.app`, alias de producción **https://ecotrack-vibecoding.vercel.app**, sin variables de entorno (modo demo). Verificación: `GET /` → 200 con el `<title>` correcto; `POST /api/analyze` con el ejemplo del enunciado → `result demo 290`; matriz completa contra producción; 3 capturas desde la URL pública. Documentos: `README.md`, `docs/BITACORA.md` + PDF (`scripts/build-bitacora-pdf.mjs`), `docs/testing.md`, `docs/demo-script.md`, `docs/presentation.md`, `docs/rubric-audit.md`, estado final de `docs/architecture.md`. |
+| Resultado | Producción: **17 pasan, 0 fallan, 2 omitidos** (T09/T15 necesitan un servidor con clave inválida; cubiertos en local). |
+| Problemas | (1) El primer PDF pesaba 22 MB (capturas PNG a 2×). (2) Al consolidar, el agente principal notó que las horas de las entradas 1–7 de esta bitácora eran aproximadas y no coincidían con los commits. |
+| Solución | (1) El script genera copias JPEG reducidas sólo para el PDF → 2,9 MB, originales intactos. (2) Se corrigieron las horas usando `git log`, y se anotó el commit de cada entrada. |
+| Decisiones | Se despliega en modo demo por decisión del estudiante (sin API key); la UI y todos los documentos lo declaran. |
+| Evidencia | `docs/evidence/produccion/test-matrix-results.md`, `08-produccion-vacio.png`, `08-produccion-resultado.png`, `08-produccion-mobile.png`. |
+
+## Cierre — métricas del proceso (medidas)
+
+| Métrica | Valor |
+|---|---|
+| Primer commit de documentación → despliegue verificado | 11:07 → ≈ 12:50 (≈ 1 h 45 min) |
+| Sub-agentes generadores ejecutados | 7 (duración sumada ≈ 72 min: 3,9 · 12,1 · 18,1 · 7,3 · 5,4 · 13,5 · 11,9 min) |
+| Código TypeScript | 4.711 líneas de producto · 1.911 de pruebas |
+| Pruebas automatizadas | 183 (15 archivos) |
+| Capturas reales | 30 |
+| Incidentes reales documentados | 4 |
