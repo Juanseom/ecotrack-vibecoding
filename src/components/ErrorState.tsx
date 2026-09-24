@@ -32,11 +32,17 @@ const COPY: Record<AnalysisError["code"], { title: string; hint: string }> = {
 type ErrorStateProps = {
   error: AnalysisError;
   onRetry: () => void;
+  /** Reintenta con el intérprete por reglas (se ofrece si falló la IA o la red). */
+  onRetryDemo?: () => void;
 };
 
+/** Errores en los que tiene sentido ofrecer el modo demo como alternativa. */
+const DEMO_FALLBACK: AnalysisError["code"][] = ["ai_error", "network"];
+
 /** Error en lenguaje humano, siempre con una acción para seguir. */
-export function ErrorState({ error, onRetry }: ErrorStateProps) {
+export function ErrorState({ error, onRetry, onRetryDemo }: ErrorStateProps) {
   const copy = COPY[error.code];
+  const offerDemo = Boolean(onRetryDemo) && DEMO_FALLBACK.includes(error.code);
   return (
     <section
       role="alert"
@@ -51,13 +57,24 @@ export function ErrorState({ error, onRetry }: ErrorStateProps) {
       {error.message && error.message !== copy.title && (
         <p className="font-mono text-xs text-ink-soft">Detalle: {error.message}</p>
       )}
-      <button
-        type="button"
-        onClick={onRetry}
-        className="self-start rounded-sm bg-moss px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ink"
-      >
-        Intentar de nuevo
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onRetry}
+          className="rounded-sm bg-moss px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ink"
+        >
+          Intentar de nuevo
+        </button>
+        {offerDemo && (
+          <button
+            type="button"
+            onClick={onRetryDemo}
+            className="rounded-sm border border-dashed border-ink/40 bg-paper px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-moss hover:bg-lichen/25"
+          >
+            Probar en modo demo
+          </button>
+        )}
+      </div>
     </section>
   );
 }

@@ -1,34 +1,33 @@
-import { sampleResult } from "@/lib/fixtures/sample-result";
-import type { AnalysisResult, StageId, StreamEvent } from "@/lib/types";
+import type { StreamEvent } from "@/lib/types";
 
 /**
  * Punto único de entrada del análisis en el cliente.
- *
- * Iteración 2: SIMULA el pipeline con temporizadores y devuelve el fixture.
- * Iteración 3: hará `fetch("/api/analyze")` y leerá NDJSON (un StreamEvent por línea),
- * llamando a `onEvent` por cada evento. La firma no cambia.
+ * Hace `POST /api/analyze` y lee la respuesta NDJSON (un `StreamEvent` por línea),
+ * llamando a `onEvent` por cada evento a medida que llegan.
  */
 export type AnalysisEventHandler = (event: StreamEvent) => void;
 
 export interface RunAnalysisOptions {
   signal?: AbortSignal;
-  /** Duración simulada de cada etapa (ms). */
-  stageDelayMs?: number;
+  /** "demo" fuerza el intérprete por reglas; "auto" (por defecto) usa la IA si está disponible. */
+  mode?: "auto" | "demo";
 }
 
+/** Igual a `MAX_TEXT_LENGTH` de `schemas.ts` (no se importa para no llevar Zod al navegador). */
 export const MAX_INPUT_LENGTH = 1000;
 
-const SIMULATED_STAGES: { stage: StageId; detail: string }[] = [
-  { stage: "extract", detail: "Leyendo tu texto y separando cada consumo…" },
-  { stage: "validate", detail: "Revisando que las cantidades y unidades cuadren…" },
-  { stage: "calculate", detail: "Multiplicando cada consumo por su factor…" },
-  { stage: "explain", detail: "Escribiendo la lectura y las recomendaciones…" },
-];
+type ErrorEvent = Extract<StreamEvent, { type: "error" }>;
+
+const NETWORK_ERROR: ErrorEvent = {
+  type: "error",
+  code: "network",
+  message: "No pudimos conectar con EcoTrack. Revisa tu conexión e inténtalo de nuevo.",
+};
 
 export async function runAnalysis(
   text: string,
   onEvent: AnalysisEventHandler,
-  { signal, stageDelayMs = 600 }: RunAnalysisOptions = {},
+  { signal, mode = "auto" }: RunAnalysisOptions = {},
 ): Promise<void> {
   const input = text.trim();
   if (!input) {
@@ -40,56 +39,99 @@ export async function runAnalysis(
     return;
   }
 
+  let response: Response;
   try {
-    for (const { stage, detail } of SIMULATED_STAGES) {
-      onEvent({ type: "stage", stage, status: "running", detail });
-      await wait(stageDelayMs, signal);
-      onEvent({ type: "stage", stage, status: "done" });
-    }
-    onEvent({ type: "result", data: simulatedResult() });
+    response = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: input, mode }),
+      signal,
+    });
   } catch (error) {
-    if (isAbortError(error)) return; // cancelado por el usuario o por un nuevo envío
+    if (isAbort(error, signal)) return; // cancelado por el usuario o por un nuevo envío
+    onEvent(NETWORK_ERROR);
+    return;
+  }
+
+  if (!response.ok) {
+    onEvent(await errorFromResponse(response));
+    return;
+  }
+  if (!response.body) {
+    onEvent({ type: "error", code: "internal", message: "La respuesta llegó vacía." });
+    return;
+  }
+
+  let finished = false;
+  const emit = (line: string) => {
+    const event = parseEvent(line);
+    if (!event) return;
+    if (event.type === "result" || event.type === "error") finished = true;
+    onEvent(event);
+  };
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // Las líneas pueden llegar partidas entre fragmentos: sólo procesamos las completas.
+      let newline = buffer.indexOf("\n");
+      while (newline !== -1) {
+        emit(buffer.slice(0, newline));
+        buffer = buffer.slice(newline + 1);
+        newline = buffer.indexOf("\n");
+      }
+    }
+    buffer += decoder.decode();
+    emit(buffer);
+  } catch (error) {
+    if (isAbort(error, signal)) return;
+    onEvent({ ...NETWORK_ERROR, message: "Se cortó la conexión mientras calculábamos." });
+    return;
+  }
+
+  if (!finished && !signal?.aborted) {
     onEvent({
       type: "error",
       code: "internal",
-      message: "Algo falló de nuestro lado.",
+      message: "La respuesta terminó antes de tiempo.",
     });
   }
 }
 
-/** El fixture con id y fecha nuevos (la cita del recibo sigue siendo la del ejemplo). */
-function simulatedResult(): AnalysisResult {
-  return { ...sampleResult, id: newId(), createdAt: new Date().toISOString() };
-}
-
-function newId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
+function parseEvent(line: string): StreamEvent | null {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+  try {
+    const value: unknown = JSON.parse(trimmed);
+    return isStreamEvent(value) ? value : null;
+  } catch {
+    return null;
   }
-  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function wait(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) return reject(abortError());
-    const timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort);
-      resolve();
-    }, ms);
-    function onAbort() {
-      clearTimeout(timer);
-      reject(abortError());
-    }
-    signal?.addEventListener("abort", onAbort, { once: true });
-  });
+function isStreamEvent(value: unknown): value is StreamEvent {
+  if (typeof value !== "object" || value === null) return false;
+  const type = (value as { type?: unknown }).type;
+  return type === "stage" || type === "result" || type === "error";
 }
 
-function abortError(): Error {
-  const error = new Error("Análisis cancelado");
-  error.name = "AbortError";
-  return error;
+async function errorFromResponse(response: Response): Promise<ErrorEvent> {
+  try {
+    const body: unknown = await response.json();
+    if (isStreamEvent(body) && body.type === "error") return body;
+  } catch {
+    // Cuerpo no JSON: usamos un error genérico según el estado.
+  }
+  return response.status >= 500
+    ? { type: "error", code: "internal", message: "Algo falló de nuestro lado." }
+    : { type: "error", code: "bad_request", message: "No pudimos procesar tu texto." };
 }
 
-function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === "AbortError";
+function isAbort(error: unknown, signal?: AbortSignal): boolean {
+  return signal?.aborted === true || (error instanceof Error && error.name === "AbortError");
 }

@@ -33,9 +33,8 @@ export function ModeBadge({ mode, model }: ModeBadgeProps) {
           </p>
         ) : (
           <p>
-            Esta instalación no está conectada a la IA: un analizador por reglas lee tu texto.
-            Funciona con frases simples; los cálculos y factores son los mismos. En esta versión
-            de prueba se muestra un resultado de ejemplo.
+            Sin clave de IA configurada: un intérprete por reglas lee tu texto. Los cálculos son
+            los mismos. Funciona mejor con frases simples, con cantidades y unidades.
           </p>
         )}
       </div>

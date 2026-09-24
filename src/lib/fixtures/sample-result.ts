@@ -1,8 +1,8 @@
 import type { AnalysisResult } from "@/lib/types";
 
 /**
- * Resultado de ejemplo fijo (iteración 2). Reproduce el caso del Master Prompt §11:
- * mientras no exista la API, la interfaz se alimenta de este fixture.
+ * Resultado de ejemplo fijo (iteración 2). Reproduce el caso del Master Prompt §11.
+ * Desde la iteración 3 la interfaz ya no lo usa: sólo sirve para pruebas e historias.
  */
 export const SAMPLE_INPUT =
   "Hoy usamos 5 camionetas de reparto durante 8 horas y gastamos 200 kWh de luz.";

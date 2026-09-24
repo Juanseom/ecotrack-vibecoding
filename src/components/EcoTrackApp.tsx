@@ -82,7 +82,7 @@ export function EcoTrackApp() {
     }
   }
 
-  async function analyze(input: string) {
+  async function analyze(input: string, mode: "auto" | "demo" = "auto") {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -97,7 +97,7 @@ export function EcoTrackApp() {
       (event) => {
         if (!controller.signal.aborted) handleEvent(event);
       },
-      { signal: controller.signal },
+      { signal: controller.signal, mode },
     );
   }
 
@@ -144,7 +144,11 @@ export function EcoTrackApp() {
 
       {phase === "error" && error && (
         <div className="max-w-3xl">
-          <ErrorState error={error} onRetry={() => analyze(lastSubmitted)} />
+          <ErrorState
+            error={error}
+            onRetry={() => analyze(lastSubmitted)}
+            onRetryDemo={() => analyze(lastSubmitted, "demo")}
+          />
         </div>
       )}
 

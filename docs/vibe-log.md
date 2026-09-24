@@ -65,3 +65,20 @@ Dentro del producto hay una cuarta capa: los **prompts de IA del producto** (`do
 | Solución | (1) Paleta ajustada (ΔE mínimo para daltonismo 9,2) y el color nunca va solo: la leyenda lleva ícono, nombre, kg y %. (2) Sombra en contenedor aparte con `drop-shadow`. (3) Filtrado por texto. |
 | Decisiones | Recibo de ~440 px a la izquierda como un ticket real; lectura de Eco a la derecha. Limitación temporal aceptada: el fixture siempre cita el texto de ejemplo; se elimina en la iteración 3. |
 | Evidencia | `docs/evidence/screenshots/02-interfaz-vacia.png`, `02-interfaz-resultado-fixture.png`, `02-interfaz-mobile.png`. |
+
+---
+
+## Entrada 3 — Flujo principal (motor de cálculo, API en streaming, modo demo)
+
+| Campo | Detalle |
+|---|---|
+| Fecha | 2026-09-24 11:50 |
+| Etapa | Iteración 3 · Flujo principal |
+| Objetivo | Funcionamiento de extremo a extremo con cualquier texto, dejando un "hueco" (`Interpreter`) para que Claude reemplace al intérprete demo sin tocar UI ni cálculo. |
+| Prompt utilizado | [`docs/prompts/iter-03-flujo-principal.md`](prompts/iter-03-flujo-principal.md) (entregado por referencia). |
+| Acción realizada | Esquemas Zod (`schemas.ts`), tabla de factores y motor puro `calculate()` con conversiones de unidades y supuestos declarados, reglas de validación, interfaz `Interpreter` + intérprete demo por reglas, `runPipeline()` como generador asíncrono de eventos, `POST /api/analyze` con streaming NDJSON, cliente con lector NDJSON, botón "Probar en modo demo" en errores de IA/red. |
+| Resultado | **101 tests** en 10 archivos, build y lint en verde (re-verificado en el repo por el agente principal). Resultados reales vía `curl`: reparto+luz **290,0 kg** (coincide con el Master Prompt §11), panadería 234,0 kg, diésel+basura 172,1 kg, motos+local 62,4 kg; texto complejo 783,2 kg con 2 consumos no cuantificados (GLP sin cantidad, furgonetas sin km) y aviso de doble conteo; vacío → HTTP 400 `empty_input`; "hola, ¿cómo estás?" → `no_data`. |
+| Problemas | (1) Con el servidor del agente principal corriendo, el sub-agente compiló en una copia y Turbopack falló: `Error [TurbopackInternalError]: Symlink [project]/node_modules is invalid, it points out of the filesystem root`. (2) Menciones sin cantidad ("Desechos:") duplicaban líneas. (3) **Detectado por el agente principal al revisar la captura:** en modo demo el recibo dice "IA interpretó" y el pipeline "La IA lee tu texto", aunque quien interpreta es un parser por reglas → contradice la regla de no presentar como IA lo que no lo es. |
+| Solución | (1) Copia real de `node_modules` (`cp -Rc`); el agente principal re-verificó el build dentro del repo. (2) Deduplicación en el intérprete demo. (3) Pendiente para la iteración 6 (corrección de errores). |
+| Decisiones | `steps` guarda sólo conversiones; la operación `cantidad × factor` la dibuja el recibo. Si `per_vehicle` es desconocido con >1 vehículo, se asume "por vehículo" **y se declara como supuesto**. |
+| Evidencia | `docs/evidence/screenshots/03-flujo-demo-panaderia.png`, `03-flujo-demo-no-cuantificable.png`, `03-flujo-sin-datos.png`. |
